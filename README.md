@@ -1,0 +1,2 @@
+# qa-regression-assistant
+Diploma
