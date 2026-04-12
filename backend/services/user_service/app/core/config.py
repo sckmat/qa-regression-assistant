@@ -6,7 +6,6 @@ class UserServiceSettings(BaseAppSettings):
     Настройки именно для user_service.
 
     Все значения читаются из `.env`.
-    Префикс USER_SERVICE_ позволяет не смешивать настройки разных сервисов.
     """
 
     database_url: str
@@ -17,6 +16,9 @@ class UserServiceSettings(BaseAppSettings):
     user_service_debug: bool = True
     user_service_db_echo: bool = False
     user_service_db_schema: str = "user_service"
+
+    # Базовый URL data_service.
+    data_service_base_url: str = "http://127.0.0.1:8001"
 
 
 settings = UserServiceSettings()

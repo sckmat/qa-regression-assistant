@@ -1,6 +1,11 @@
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from services.user_service.app.clients.data_service_client import (
+    DataServiceClient,
+    DataServiceSearchResponse,
+)
+from services.user_service.app.core.config import settings
 from services.user_service.app.models.regression_run import RegressionRun
 from services.user_service.app.repositories.project_repository import (
     ProjectRepository,
@@ -15,20 +20,19 @@ class RegressionRunService:
     """
     Service-слой для запусков анализа регресса.
 
-    На текущем этапе здесь только базовая логика:
+    На этом этапе user_service уже умеет:
     - проверить, что проект существует;
-    - создать запись о запуске;
-    - вернуть пользователю результат.
-
-    Позже именно сюда удобно добавить orchestration:
-    - вызов data_service;
-    - вызов llm_service;
-    - сохранение результатов анализа.
+    - сходить в data_service;
+    - получить кандидатов по change_summary;
+    - сохранить результат запуска у себя в БД.
     """
 
     def __init__(self, session: AsyncSession):
         self.project_repository = ProjectRepository(session)
         self.regression_run_repository = RegressionRunRepository(session)
+        self.data_service_client = DataServiceClient(
+            base_url=settings.data_service_base_url
+        )
 
     async def create_run(
         self,
@@ -42,11 +46,22 @@ class RegressionRunService:
                 detail=f"Project with id={project_id} not found.",
             )
 
+        # Шаг 1. Запрашиваем кандидатов у data_service.
+        search_response = await self.data_service_client.search_test_cases(
+            project_id=project_id,
+            query=payload.change_summary,
+            limit=payload.candidate_limit,
+        )
+
+        # Шаг 2. Собираем краткий summary, который сохраняем в БД.
+        result_summary = self._build_result_summary(search_response)
+
+        # Шаг 3. Сохраняем сам запуск уже как completed.
         return await self.regression_run_repository.create(
             project_id=project_id,
             change_summary=payload.change_summary,
-            status="created",
-            result_summary="Run created. Data Service and LLM Service are not connected yet.",
+            status="completed",
+            result_summary=result_summary,
         )
 
     async def list_runs(self, project_id: int) -> list[RegressionRun]:
@@ -67,3 +82,36 @@ class RegressionRunService:
                 detail=f"Regression run with id={run_id} not found.",
             )
         return run
+
+    def _build_result_summary(
+        self,
+        search_response: DataServiceSearchResponse,
+    ) -> str:
+        """
+        Пока не сохраняем кандидатов в отдельную таблицу.
+        На этом этапе делаем простой, но полезный вариант:
+        складываем краткий человекочитаемый summary в result_summary.
+        """
+
+        if not search_response.candidates:
+            return (
+                "Data Service connected successfully. "
+                "No candidate test cases were found for the provided change summary."
+            )
+
+        lines = [
+            "Data Service connected successfully.",
+            f"Found candidates: {len(search_response.candidates)}.",
+            "Top matches:",
+        ]
+
+        for index, candidate in enumerate(search_response.candidates, start=1):
+            matched_terms = ", ".join(candidate.matched_terms) if candidate.matched_terms else "—"
+            lines.append(
+                f"{index}. test_case_id={candidate.test_case.id}, "
+                f"title='{candidate.test_case.title}', "
+                f"score={candidate.relevance_score}, "
+                f"matched_terms=[{matched_terms}]"
+            )
+
+        return "\n".join(lines)

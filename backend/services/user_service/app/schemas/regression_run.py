@@ -15,6 +15,13 @@ class RegressionRunCreate(BaseModel):
         description="Описание изменений, по которым нужно собрать регресс.",
     )
 
+    candidate_limit: int = Field(
+        default=5,
+        ge=1,
+        le=20,
+        description="Сколько кандидатов запрашивать у data_service.",
+    )
+
 
 class RegressionRunRead(BaseModel):
     """

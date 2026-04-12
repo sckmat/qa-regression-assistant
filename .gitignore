@@ -47,13 +47,6 @@ README.md
 LICENSE
 .editorconfig
 
-# Test files
-tests/
-test_*.py
-*_test.py
-pytest.ini
-.pytest_cache/
-
 # Environment and secrets
 .env
 .env.*
