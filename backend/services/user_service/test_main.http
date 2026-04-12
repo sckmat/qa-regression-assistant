@@ -1,0 +1,31 @@
+### Проверка health endpoint
+GET http://127.0.0.1:8000/health
+
+### Создать проект
+POST http://127.0.0.1:8000/api/v1/projects
+Content-Type: application/json
+
+{
+  "name": "Demo Project",
+  "description": "Первый проект для user_service"
+}
+
+### Получить все проекты
+GET http://127.0.0.1:8000/api/v1/projects
+
+### Получить проект по id
+GET http://127.0.0.1:8000/api/v1/projects/1
+
+### Создать запуск анализа регресса
+POST http://127.0.0.1:8000/api/v1/projects/1/regression-runs
+Content-Type: application/json
+
+{
+  "change_summary": "Изменен экран логина, добавлена валидация email и обработка ошибки 401."
+}
+
+### Получить все запуски анализа по проекту
+GET http://127.0.0.1:8000/api/v1/projects/1/regression-runs
+
+### Получить запуск по id
+GET http://127.0.0.1:8000/api/v1/regression-runs/1

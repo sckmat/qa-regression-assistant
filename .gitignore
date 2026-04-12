@@ -12,7 +12,6 @@ ENV/
 .venv
 
 # Model cache directories (large files that should be downloaded at runtime)
-models/
 hf_cache/
 torch_cache/
 whisper.cache/
