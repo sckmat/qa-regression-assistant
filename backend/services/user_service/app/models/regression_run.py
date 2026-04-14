@@ -13,9 +13,6 @@ from services.user_service.app.models.base import Base
 class RegressionRun(Base):
     """
     Таблица запусков анализа регресса.
-
-    На текущем этапе это просто запись о том, что пользователь
-    передал описание изменений и инициировал процесс анализа.
     """
 
     __tablename__ = "regression_runs"
@@ -34,8 +31,6 @@ class RegressionRun(Base):
 
     change_summary: Mapped[str] = mapped_column(Text, nullable=False)
 
-    # Пока status — просто строка.
-    # Позже можно заменить на Enum, когда будет больше состояний.
     status: Mapped[str] = mapped_column(
         String(50),
         nullable=False,
@@ -43,8 +38,6 @@ class RegressionRun(Base):
         server_default="created",
     )
 
-    # Пока result_summary — текстовая заглушка.
-    # Позже сюда можно сохранять краткий итог работы пайплайна.
     result_summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
@@ -54,3 +47,8 @@ class RegressionRun(Base):
     )
 
     project: Mapped["Project"] = relationship(back_populates="regression_runs")
+
+    candidates: Mapped[list["RegressionRunCandidate"]] = relationship(
+        back_populates="regression_run",
+        cascade="all, delete-orphan",
+    )

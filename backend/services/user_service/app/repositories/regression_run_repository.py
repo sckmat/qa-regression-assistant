@@ -19,6 +19,12 @@ class RegressionRunRepository:
         status: str = "created",
         result_summary: str | None = None,
     ) -> RegressionRun:
+        """
+        Создает запуск анализа, но не коммитит транзакцию сразу.
+
+        мы хотим в рамках одной транзакции сохранить и сам run,
+        и найденных кандидатов.
+        """
         run = RegressionRun(
             project_id=project_id,
             change_summary=change_summary,
@@ -26,8 +32,7 @@ class RegressionRunRepository:
             result_summary=result_summary,
         )
         self.session.add(run)
-        await self.session.commit()
-        await self.session.refresh(run)
+        await self.session.flush()
         return run
 
     async def list_by_project_id(self, project_id: int) -> list[RegressionRun]:

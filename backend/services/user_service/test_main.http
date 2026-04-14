@@ -7,7 +7,7 @@ Content-Type: application/json
 
 {
   "name": "Demo Project",
-  "description": "Проект для проверки интеграции user_service -> data_service"
+  "description": "Проект для проверки структурированного сохранения кандидатов"
 }
 
 ### List projects
@@ -30,4 +30,5 @@ Content-Type: application/json
 GET http://127.0.0.1:8000/api/v1/projects/1/regression-runs
 
 ### Get regression run by id
+### Теперь здесь вернется не только result_summary, но и массив candidates
 GET http://127.0.0.1:8000/api/v1/regression-runs/1

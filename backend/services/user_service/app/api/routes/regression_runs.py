@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from services.user_service.app.core.db import get_db_session
 from services.user_service.app.schemas.regression_run import (
     RegressionRunCreate,
+    RegressionRunDetailRead,
     RegressionRunRead,
 )
 from services.user_service.app.services.regression_run_service import (
@@ -19,24 +20,20 @@ DbSession = Annotated[AsyncSession, Depends(get_db_session)]
 
 @router.post(
     "/projects/{project_id}/regression-runs",
-    response_model=RegressionRunRead,
+    response_model=RegressionRunDetailRead,
     status_code=201,
 )
 async def create_regression_run(
     project_id: int,
     payload: RegressionRunCreate,
     session: DbSession,
-) -> RegressionRunRead:
+) -> RegressionRunDetailRead:
     """
-    Создает новый запуск анализа регресса для проекта.
-
-    Пока здесь только запись факта запуска.
-    Реальный пайплайн с Data Service и LLM Service
-    добавим на следующем этапе.
+    Создает новый запуск анализа регресса для проекта
+    и сразу возвращает найденных кандидатов.
     """
     service = RegressionRunService(session)
-    run = await service.create_run(project_id, payload)
-    return RegressionRunRead.model_validate(run)
+    return await service.create_run(project_id, payload)
 
 
 @router.get(
@@ -55,14 +52,16 @@ async def list_regression_runs(
     return [RegressionRunRead.model_validate(run) for run in runs]
 
 
-@router.get("/regression-runs/{run_id}", response_model=RegressionRunRead)
+@router.get(
+    "/regression-runs/{run_id}",
+    response_model=RegressionRunDetailRead,
+)
 async def get_regression_run(
     run_id: int,
     session: DbSession,
-) -> RegressionRunRead:
+) -> RegressionRunDetailRead:
     """
-    Возвращает один запуск анализа по id.
+    Возвращает один запуск анализа по id вместе с найденными кандидатами.
     """
     service = RegressionRunService(session)
-    run = await service.get_run(run_id)
-    return RegressionRunRead.model_validate(run)
+    return await service.get_run(run_id)

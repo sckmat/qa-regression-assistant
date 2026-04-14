@@ -3,6 +3,10 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
+from services.user_service.app.schemas.regression_run_candidate import (
+    RegressionRunCandidateRead,
+)
+
 
 class RegressionRunCreate(BaseModel):
     """
@@ -25,7 +29,8 @@ class RegressionRunCreate(BaseModel):
 
 class RegressionRunRead(BaseModel):
     """
-    Схема ответа с данными о запуске анализа.
+    Короткая схема ответа по запуску анализа.
+    Подходит для списков.
     """
 
     id: int
@@ -36,3 +41,12 @@ class RegressionRunRead(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class RegressionRunDetailRead(RegressionRunRead):
+    """
+    Детальная схема ответа:
+    помимо самого запуска содержит найденных кандидатов.
+    """
+
+    candidates: list[RegressionRunCandidateRead] = Field(default_factory=list)
