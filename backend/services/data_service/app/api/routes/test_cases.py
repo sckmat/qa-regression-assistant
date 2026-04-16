@@ -10,6 +10,15 @@ from services.data_service.app.schemas.test_case import (
     TestCaseSearchResponse,
 )
 from services.data_service.app.services.test_case_service import TestCaseService
+from services.data_service.app.schemas.reindex import ProjectReindexResponse
+from services.data_service.app.services.indexing_service import IndexingService
+from services.data_service.app.schemas.semantic_search import (
+    SemanticSearchRequest,
+    SemanticSearchResponse,
+)
+from services.data_service.app.services.semantic_search_service import (
+    SemanticSearchService,
+)
 
 router = APIRouter(tags=["Test Cases"])
 
@@ -93,3 +102,35 @@ async def search_test_cases(
         query=payload.query,
         limit=payload.limit,
     )
+
+@router.post(
+    "/projects/{project_id}/test-cases/reindex",
+    response_model=ProjectReindexResponse,
+    status_code=200,
+)
+async def reindex_project_test_cases(
+    project_id: int,
+    session: AsyncSession = Depends(get_db_session),
+) -> ProjectReindexResponse:
+    """
+    Переиндексирует все тест-кейсы проекта:
+    строит embeddings и сохраняет их в БД.
+    """
+    service = IndexingService(session)
+    return await service.reindex_project(project_id)
+
+@router.post(
+    "/projects/{project_id}/test-cases/semantic-search",
+    response_model=SemanticSearchResponse,
+    status_code=200,
+)
+async def semantic_search_test_cases(
+    project_id: int,
+    payload: SemanticSearchRequest,
+    session: AsyncSession = Depends(get_db_session),
+) -> SemanticSearchResponse:
+    """
+    Выполняет semantic search по embeddings test cases проекта.
+    """
+    service = SemanticSearchService(session)
+    return await service.semantic_search(project_id, payload)

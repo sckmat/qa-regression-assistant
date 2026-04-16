@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -24,6 +24,11 @@ class RegressionRunCreate(BaseModel):
         ge=1,
         le=20,
         description="Сколько кандидатов запрашивать у data_service.",
+    )
+
+    search_mode: Literal["lexical", "semantic"] = Field(
+        default="lexical",
+        description="Режим retrieval в data_service.",
     )
 
 

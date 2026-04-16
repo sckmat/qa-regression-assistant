@@ -6,12 +6,12 @@ import httpx
 from fastapi import HTTPException, status
 from pydantic import BaseModel, ValidationError
 
+from services.user_service.app.schemas.retrieval_candidate import RetrievalCandidate
+
 
 class DataServiceTestCaseRead(BaseModel):
     """
-    Упрощенная схема тест-кейса, которую возвращает data_service.
-    Нам не нужны все поля для orchestration-логики,
-    но удобно распарсить объект в типизированный вид.
+    Упрощенная схема test case, которую возвращает data_service.
     """
 
     id: int
@@ -20,33 +20,46 @@ class DataServiceTestCaseRead(BaseModel):
     raw_text: str
 
 
-class DataServiceSearchCandidate(BaseModel):
-    """
-    Один кандидат из ответа data_service.
-    """
+# ===== Lexical search response models =====
 
+class DataServiceSearchCandidate(BaseModel):
     test_case: DataServiceTestCaseRead
     relevance_score: int
     matched_terms: list[str]
 
 
 class DataServiceSearchResponse(BaseModel):
-    """
-    Ответ data_service на поиск тест-кейсов.
-    """
-
     project_id: int
     query: str
     candidates: list[DataServiceSearchCandidate]
 
 
+# ===== Semantic search response models =====
+
+class DataServiceSemanticCandidate(BaseModel):
+    test_case: DataServiceTestCaseRead
+    cosine_distance: float
+    similarity_score: float
+
+
+class DataServiceSemanticResponse(BaseModel):
+    project_id: int
+    query: str
+    embedding_provider: str
+    embedding_model: str
+    candidates: list[DataServiceSemanticCandidate]
+
+
 class DataServiceClient:
     """
-    Небольшой HTTP-клиент для вызова data_service.
+    HTTP-клиент для вызова data_service.
 
-    Почему вынесено в отдельный класс:
-    - user_service не должен собирать URL и HTTP-логику прямо в service-слое;
-    - так проще потом заменить transport, добавить retry, auth между сервисами и т.д.
+    Поддерживает два режима:
+    - lexical search
+    - semantic search
+
+    Оба ответа нормализуются в единый RetrievalCandidate,
+    чтобы service-слой user_service не зависел от формата data_service.
     """
 
     def __init__(self, base_url: str):
@@ -57,22 +70,65 @@ class DataServiceClient:
         project_id: int,
         query: str,
         limit: int,
-    ) -> DataServiceSearchResponse:
+    ) -> list[RetrievalCandidate]:
         url = f"{self.base_url}/api/v1/projects/{project_id}/test-cases/search"
         payload = {
             "query": query,
             "limit": limit,
         }
 
+        data = await self._post_json(url=url, payload=payload)
+        parsed = DataServiceSearchResponse.model_validate(data)
+
+        return [
+            RetrievalCandidate(
+                source_test_case_id=item.test_case.id,
+                title=item.test_case.title,
+                normalized_score=item.relevance_score,
+                matched_terms=item.matched_terms,
+            )
+            for item in parsed.candidates
+        ]
+
+    async def semantic_search_test_cases(
+        self,
+        project_id: int,
+        query: str,
+        limit: int,
+    ) -> list[RetrievalCandidate]:
+        url = f"{self.base_url}/api/v1/projects/{project_id}/test-cases/semantic-search"
+        payload = {
+            "query": query,
+            "limit": limit,
+        }
+
+        data = await self._post_json(url=url, payload=payload)
+        parsed = DataServiceSemanticResponse.model_validate(data)
+
+        return [
+            RetrievalCandidate(
+                source_test_case_id=item.test_case.id,
+                title=item.test_case.title,
+                normalized_score=round(item.similarity_score * 1000),
+                matched_terms=[],
+            )
+            for item in parsed.candidates
+        ]
+
+    async def _post_json(
+        self,
+        url: str,
+        payload: dict[str, Any],
+    ) -> dict[str, Any]:
         try:
             async with httpx.AsyncClient(
-                timeout=httpx.Timeout(10.0, connect=5.0)
+                timeout=httpx.Timeout(20.0, connect=5.0)
             ) as client:
                 response = await client.post(url, json=payload)
                 response.raise_for_status()
 
             data: dict[str, Any] = response.json()
-            return DataServiceSearchResponse.model_validate(data)
+            return data
 
         except httpx.ConnectError as exc:
             raise HTTPException(

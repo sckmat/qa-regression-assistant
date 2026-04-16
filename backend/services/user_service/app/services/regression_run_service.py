@@ -1,10 +1,7 @@
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from services.user_service.app.clients.data_service_client import (
-    DataServiceClient,
-    DataServiceSearchResponse,
-)
+from services.user_service.app.clients.data_service_client import DataServiceClient
 from services.user_service.app.core.config import settings
 from services.user_service.app.models.regression_run import RegressionRun
 from services.user_service.app.models.regression_run_candidate import (
@@ -23,18 +20,16 @@ from services.user_service.app.schemas.regression_run import (
     RegressionRunCreate,
     RegressionRunDetailRead,
 )
+from services.user_service.app.schemas.retrieval_candidate import RetrievalCandidate
 
 
 class RegressionRunService:
     """
     Service-слой для запусков анализа регресса.
 
-    На Этапе 3 user_service уже умеет:
-    - проверить, что проект существует;
-    - сходить в data_service;
-    - получить кандидатов по change_summary;
-    - сохранить запуск;
-    - сохранить найденных кандидатов отдельными строками в БД.
+    На этом этапе user_service умеет работать в двух режимах:
+    - lexical retrieval
+    - semantic retrieval
     """
 
     def __init__(self, session: AsyncSession):
@@ -60,15 +55,18 @@ class RegressionRunService:
                 detail=f"Project with id={project_id} not found.",
             )
 
-        # Сначала получаем кандидатов от data_service.
-        search_response = await self.data_service_client.search_test_cases(
+        candidates = await self._get_candidates(
             project_id=project_id,
             query=payload.change_summary,
             limit=payload.candidate_limit,
+            search_mode=payload.search_mode,
         )
 
-        result_summary = self._build_result_summary(search_response)
-        candidates_payload = self._build_candidates_payload(search_response)
+        result_summary = self._build_result_summary(
+            candidates=candidates,
+            search_mode=payload.search_mode,
+        )
+        candidates_payload = self._build_candidates_payload(candidates)
 
         try:
             run = await self.regression_run_repository.create(
@@ -118,18 +116,38 @@ class RegressionRunService:
         )
         return self._to_detail_response(run, candidates)
 
+    async def _get_candidates(
+        self,
+        project_id: int,
+        query: str,
+        limit: int,
+        search_mode: str,
+    ) -> list[RetrievalCandidate]:
+        if search_mode == "semantic":
+            return await self.data_service_client.semantic_search_test_cases(
+                project_id=project_id,
+                query=query,
+                limit=limit,
+            )
+
+        return await self.data_service_client.search_test_cases(
+            project_id=project_id,
+            query=query,
+            limit=limit,
+        )
+
     def _build_candidates_payload(
         self,
-        search_response: DataServiceSearchResponse,
+        candidates: list[RetrievalCandidate],
     ) -> list[dict]:
         payload: list[dict] = []
 
-        for candidate in search_response.candidates:
+        for candidate in candidates:
             payload.append(
                 {
-                    "source_test_case_id": candidate.test_case.id,
-                    "title": candidate.test_case.title,
-                    "relevance_score": candidate.relevance_score,
+                    "source_test_case_id": candidate.source_test_case_id,
+                    "title": candidate.title,
+                    "relevance_score": candidate.normalized_score,
                     "matched_terms": candidate.matched_terms,
                 }
             )
@@ -153,34 +171,28 @@ class RegressionRunService:
 
     def _build_result_summary(
         self,
-        search_response: DataServiceSearchResponse,
+        candidates: list[RetrievalCandidate],
+        search_mode: str,
     ) -> str:
-        """
-        Оставляем result_summary как краткое человекочитаемое summary,
-        но теперь полный результат лежит еще и в отдельной таблице.
-        """
-        if not search_response.candidates:
+        if not candidates:
             return (
-                "Data Service connected successfully. "
+                f"Data Service connected successfully. Search mode: {search_mode}. "
                 "No candidate test cases were found for the provided change summary."
             )
 
         lines = [
             "Data Service connected successfully.",
-            f"Found candidates: {len(search_response.candidates)}.",
+            f"Search mode: {search_mode}.",
+            f"Found candidates: {len(candidates)}.",
             "Top matches:",
         ]
 
-        for index, candidate in enumerate(search_response.candidates, start=1):
-            matched_terms = (
-                ", ".join(candidate.matched_terms)
-                if candidate.matched_terms
-                else "—"
-            )
+        for index, candidate in enumerate(candidates, start=1):
+            matched_terms = ", ".join(candidate.matched_terms) if candidate.matched_terms else "—"
             lines.append(
-                f"{index}. test_case_id={candidate.test_case.id}, "
-                f"title='{candidate.test_case.title}', "
-                f"score={candidate.relevance_score}, "
+                f"{index}. test_case_id={candidate.source_test_case_id}, "
+                f"title='{candidate.title}', "
+                f"score={candidate.normalized_score}, "
                 f"matched_terms=[{matched_terms}]"
             )
 

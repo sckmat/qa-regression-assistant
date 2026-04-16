@@ -1,3 +1,4 @@
+from sqlalchemy import text
 from sqlalchemy.schema import CreateSchema
 
 from shared.db.session import (
@@ -6,28 +7,28 @@ from shared.db.session import (
     make_session_dependency,
 )
 from services.data_service.app.core.config import settings
-from services.data_service.app.models import test_case  # noqa: F401
 from services.data_service.app.models.base import Base
+from services.data_service.app.models.test_case import TestCase  # noqa: F401
+from services.data_service.app.models.test_case_embedding import (  # noqa: F401
+    TestCaseEmbedding,
+)
 
-# Отдельный engine для data_service.
 engine = build_engine(
     database_url=settings.database_url,
     echo=settings.data_service_db_echo,
 )
 
-# Фабрика сессий, которую использует только data_service.
 SessionFactory = build_session_factory(engine)
-
-# FastAPI dependency для получения БД-сессии в роуте.
 get_db_session = make_session_dependency(SessionFactory)
 
 
 async def init_db() -> None:
-    """
-    Создает схему и таблицы data_service.
-    """
     async with engine.begin() as connection:
         await connection.execute(
             CreateSchema(settings.data_service_db_schema, if_not_exists=True)
         )
+
+        # Включаем pgvector extension в базе.
+        await connection.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+
         await connection.run_sync(Base.metadata.create_all)

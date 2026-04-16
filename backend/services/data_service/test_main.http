@@ -59,3 +59,15 @@ Content-Type: application/json
   "query": "Изменен экран логина, добавлена валидация email и обработка ошибки 401",
   "limit": 10
 }
+
+### Reindex test cases for project
+POST http://127.0.0.1:8001/api/v1/projects/1/test-cases/reindex
+
+### Semantic search test cases for project
+POST http://127.0.0.1:8001/api/v1/projects/1/test-cases/semantic-search
+Content-Type: application/json
+
+{
+  "query": "Изменен экран логина, добавлена валидация email и обработка ошибки 401",
+  "limit": 5
+}

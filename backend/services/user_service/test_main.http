@@ -7,7 +7,7 @@ Content-Type: application/json
 
 {
   "name": "Demo Project",
-  "description": "Проект для проверки структурированного сохранения кандидатов"
+  "description": "Проект для проверки lexical и semantic retrieval в user_service"
 }
 
 ### List projects
@@ -16,19 +16,28 @@ GET http://127.0.0.1:8000/api/v1/projects
 ### Get project by id
 GET http://127.0.0.1:8000/api/v1/projects/1
 
-### Create regression run
-### Важно: перед этим в data_service должны быть импортированы тест-кейсы для project_id=1
+### Create regression run - lexical
 POST http://127.0.0.1:8000/api/v1/projects/1/regression-runs
 Content-Type: application/json
 
 {
   "change_summary": "Изменен экран логина, добавлена валидация email и обработка ошибки 401",
-  "candidate_limit": 5
+  "candidate_limit": 5,
+  "search_mode": "lexical"
+}
+
+### Create regression run - semantic
+POST http://127.0.0.1:8000/api/v1/projects/1/regression-runs
+Content-Type: application/json
+
+{
+  "change_summary": "Изменен экран логина, добавлена валидация email и обработка ошибки 401",
+  "candidate_limit": 5,
+  "search_mode": "semantic"
 }
 
 ### List regression runs
 GET http://127.0.0.1:8000/api/v1/projects/1/regression-runs
 
 ### Get regression run by id
-### Теперь здесь вернется не только result_summary, но и массив candidates
 GET http://127.0.0.1:8000/api/v1/regression-runs/1
