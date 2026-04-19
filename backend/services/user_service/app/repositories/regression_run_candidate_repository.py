@@ -19,20 +19,6 @@ class RegressionRunCandidateRepository:
         regression_run_id: int,
         candidates_payload: list[dict],
     ) -> list[RegressionRunCandidate]:
-        """
-        Создает несколько кандидатов за один вызов.
-
-        candidates_payload ожидается в виде списка словарей:
-        [
-            {
-                "source_test_case_id": 1,
-                "title": "...",
-                "relevance_score": 10,
-                "matched_terms": ["login", "401"]
-            },
-            ...
-        ]
-        """
         entities: list[RegressionRunCandidate] = []
 
         for item in candidates_payload:
@@ -42,6 +28,7 @@ class RegressionRunCandidateRepository:
                 title=item["title"],
                 relevance_score=item["relevance_score"],
                 matched_terms=item["matched_terms"],
+                explanation=item.get("explanation"),
             )
             entities.append(entity)
 

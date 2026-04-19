@@ -14,6 +14,7 @@ class RegressionRunCandidateRead(BaseModel):
     title: str
     relevance_score: int
     matched_terms: list[str]
+    explanation: str | None
     created_at: datetime
 
     model_config = {"from_attributes": True}

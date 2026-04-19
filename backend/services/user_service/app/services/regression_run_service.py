@@ -2,6 +2,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.user_service.app.clients.data_service_client import DataServiceClient
+from services.user_service.app.clients.llm_service_client import LLMServiceClient
 from services.user_service.app.core.config import settings
 from services.user_service.app.models.regression_run import RegressionRun
 from services.user_service.app.models.regression_run_candidate import (
@@ -27,9 +28,10 @@ class RegressionRunService:
     """
     Service-слой для запусков анализа регресса.
 
-    На этом этапе user_service умеет работать в двух режимах:
-    - lexical retrieval
-    - semantic retrieval
+    Поддерживаемые режимы:
+    - lexical
+    - semantic
+    - semantic_llm
     """
 
     def __init__(self, session: AsyncSession):
@@ -41,6 +43,9 @@ class RegressionRunService:
         )
         self.data_service_client = DataServiceClient(
             base_url=settings.data_service_base_url
+        )
+        self.llm_service_client = LLMServiceClient(
+            base_url=settings.llm_service_base_url
         )
 
     async def create_run(
@@ -123,6 +128,13 @@ class RegressionRunService:
         limit: int,
         search_mode: str,
     ) -> list[RetrievalCandidate]:
+        if search_mode == "lexical":
+            return await self.data_service_client.search_test_cases(
+                project_id=project_id,
+                query=query,
+                limit=limit,
+            )
+
         if search_mode == "semantic":
             return await self.data_service_client.semantic_search_test_cases(
                 project_id=project_id,
@@ -130,10 +142,25 @@ class RegressionRunService:
                 limit=limit,
             )
 
-        return await self.data_service_client.search_test_cases(
-            project_id=project_id,
-            query=query,
-            limit=limit,
+        if search_mode == "semantic_llm":
+            semantic_candidates = await self.data_service_client.semantic_search_test_cases(
+                project_id=project_id,
+                query=query,
+                limit=limit,
+            )
+
+            if not semantic_candidates:
+                return []
+
+            return await self.llm_service_client.rerank_candidates(
+                change_summary=query,
+                candidates=semantic_candidates,
+                top_n=limit,
+            )
+
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unsupported search_mode: {search_mode}",
         )
 
     def _build_candidates_payload(
@@ -149,6 +176,7 @@ class RegressionRunService:
                     "title": candidate.title,
                     "relevance_score": candidate.normalized_score,
                     "matched_terms": candidate.matched_terms,
+                    "explanation": candidate.explanation,
                 }
             )
 
@@ -189,11 +217,13 @@ class RegressionRunService:
 
         for index, candidate in enumerate(candidates, start=1):
             matched_terms = ", ".join(candidate.matched_terms) if candidate.matched_terms else "—"
+            explanation = candidate.explanation or "—"
             lines.append(
                 f"{index}. test_case_id={candidate.source_test_case_id}, "
                 f"title='{candidate.title}', "
                 f"score={candidate.normalized_score}, "
-                f"matched_terms=[{matched_terms}]"
+                f"matched_terms=[{matched_terms}], "
+                f"explanation='{explanation}'"
             )
 
         return "\n".join(lines)

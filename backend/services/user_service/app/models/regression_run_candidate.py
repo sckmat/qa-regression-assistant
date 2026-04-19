@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, JSON, String, func
+from sqlalchemy import DateTime, ForeignKey, Integer, JSON, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from services.user_service.app.core.config import settings
@@ -12,11 +12,6 @@ from services.user_service.app.models.base import Base
 class RegressionRunCandidate(Base):
     """
     Таблица найденных кандидатов для конкретного запуска анализа.
-
-    Здесь храним уже не "текстовое summary", а структурированный результат:
-    - какой test case был найден;
-    - с каким score;
-    - по каким matched terms.
     """
 
     __tablename__ = "regression_run_candidates"
@@ -33,7 +28,6 @@ class RegressionRunCandidate(Base):
         index=True,
     )
 
-    # id тест-кейса из data_service
     source_test_case_id: Mapped[int] = mapped_column(
         Integer,
         nullable=False,
@@ -49,11 +43,15 @@ class RegressionRunCandidate(Base):
         server_default="0",
     )
 
-    # Сохраняем список совпавших слов как JSON-массив.
     matched_terms: Mapped[list[str]] = mapped_column(
         JSON,
         nullable=False,
         default=list,
+    )
+
+    explanation: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
     )
 
     created_at: Mapped[datetime] = mapped_column(

@@ -23,21 +23,16 @@ class RegressionRunCreate(BaseModel):
         default=5,
         ge=1,
         le=20,
-        description="Сколько кандидатов запрашивать у data_service.",
+        description="Сколько кандидатов запрашивать у retrieval-слоя.",
     )
 
-    search_mode: Literal["lexical", "semantic"] = Field(
+    search_mode: Literal["lexical", "semantic", "semantic_llm"] = Field(
         default="lexical",
-        description="Режим retrieval в data_service.",
+        description="Режим поиска кандидатов.",
     )
 
 
 class RegressionRunRead(BaseModel):
-    """
-    Короткая схема ответа по запуску анализа.
-    Подходит для списков.
-    """
-
     id: int
     project_id: int
     change_summary: str
@@ -49,9 +44,4 @@ class RegressionRunRead(BaseModel):
 
 
 class RegressionRunDetailRead(RegressionRunRead):
-    """
-    Детальная схема ответа:
-    помимо самого запуска содержит найденных кандидатов.
-    """
-
     candidates: list[RegressionRunCandidateRead] = Field(default_factory=list)

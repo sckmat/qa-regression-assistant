@@ -10,17 +10,13 @@ from services.user_service.app.schemas.retrieval_candidate import RetrievalCandi
 
 
 class DataServiceTestCaseRead(BaseModel):
-    """
-    Упрощенная схема test case, которую возвращает data_service.
-    """
-
     id: int
     project_id: int
     title: str
     raw_text: str
 
 
-# ===== Lexical search response models =====
+# ===== Lexical search =====
 
 class DataServiceSearchCandidate(BaseModel):
     test_case: DataServiceTestCaseRead
@@ -34,7 +30,7 @@ class DataServiceSearchResponse(BaseModel):
     candidates: list[DataServiceSearchCandidate]
 
 
-# ===== Semantic search response models =====
+# ===== Semantic search =====
 
 class DataServiceSemanticCandidate(BaseModel):
     test_case: DataServiceTestCaseRead
@@ -53,13 +49,6 @@ class DataServiceSemanticResponse(BaseModel):
 class DataServiceClient:
     """
     HTTP-клиент для вызова data_service.
-
-    Поддерживает два режима:
-    - lexical search
-    - semantic search
-
-    Оба ответа нормализуются в единый RetrievalCandidate,
-    чтобы service-слой user_service не зависел от формата data_service.
     """
 
     def __init__(self, base_url: str):
@@ -84,8 +73,11 @@ class DataServiceClient:
             RetrievalCandidate(
                 source_test_case_id=item.test_case.id,
                 title=item.test_case.title,
+                raw_text=item.test_case.raw_text,
                 normalized_score=item.relevance_score,
+                retrieval_score=float(item.relevance_score),
                 matched_terms=item.matched_terms,
+                explanation=None,
             )
             for item in parsed.candidates
         ]
@@ -109,8 +101,11 @@ class DataServiceClient:
             RetrievalCandidate(
                 source_test_case_id=item.test_case.id,
                 title=item.test_case.title,
+                raw_text=item.test_case.raw_text,
                 normalized_score=round(item.similarity_score * 1000),
+                retrieval_score=item.similarity_score,
                 matched_terms=[],
+                explanation=None,
             )
             for item in parsed.candidates
         ]
@@ -127,8 +122,7 @@ class DataServiceClient:
                 response = await client.post(url, json=payload)
                 response.raise_for_status()
 
-            data: dict[str, Any] = response.json()
-            return data
+            return response.json()
 
         except httpx.ConnectError as exc:
             raise HTTPException(
