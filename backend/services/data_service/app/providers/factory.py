@@ -13,7 +13,7 @@ def build_embedding_provider(settings: DataServiceSettings) -> EmbeddingProvider
 
     if provider == "ollama":
         return OllamaEmbeddingProvider(
-            base_url=settings.ollama_base_url,
+            base_url=settings.ollama_embedding_base_url,
             model=settings.embedding_model,
             dimensions=settings.embedding_dim,
         )

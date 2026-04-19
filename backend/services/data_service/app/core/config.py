@@ -18,7 +18,7 @@ class DataServiceSettings(BaseAppSettings):
     embedding_batch_size: int = 16
 
     # Ollama
-    ollama_base_url: str = "http://127.0.0.1:11434"
+    ollama_embedding_base_url: str = "http://127.0.0.1:11434"
 
     # OpenAI
     openai_base_url: str = "https://api.openai.com"
