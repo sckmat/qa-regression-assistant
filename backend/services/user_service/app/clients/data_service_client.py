@@ -54,6 +54,8 @@ class DataServiceClient:
     def __init__(self, base_url: str):
         self.base_url = base_url.rstrip("/")
 
+    # ===== Retrieval =====
+
     async def search_test_cases(
         self,
         project_id: int,
@@ -66,7 +68,11 @@ class DataServiceClient:
             "limit": limit,
         }
 
-        data = await self._post_json(url=url, payload=payload)
+        data = await self._request_json(
+            method="POST",
+            url=url,
+            json_payload=payload,
+        )
         parsed = DataServiceSearchResponse.model_validate(data)
 
         return [
@@ -94,7 +100,11 @@ class DataServiceClient:
             "limit": limit,
         }
 
-        data = await self._post_json(url=url, payload=payload)
+        data = await self._request_json(
+            method="POST",
+            url=url,
+            json_payload=payload,
+        )
         parsed = DataServiceSemanticResponse.model_validate(data)
 
         return [
@@ -110,16 +120,97 @@ class DataServiceClient:
             for item in parsed.candidates
         ]
 
-    async def _post_json(
+    # ===== Test cases gateway methods =====
+
+    async def list_test_cases(
         self,
-        url: str,
+        project_id: int,
+    ) -> list[dict[str, Any]]:
+        url = f"{self.base_url}/api/v1/projects/{project_id}/test-cases"
+        data = await self._request_json(
+            method="GET",
+            url=url,
+        )
+
+        if not isinstance(data, list):
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="Invalid list_test_cases response from data_service",
+            )
+
+        return data
+
+    async def get_test_case(
+        self,
+        test_case_id: int,
+    ) -> dict[str, Any]:
+        url = f"{self.base_url}/api/v1/test-cases/{test_case_id}"
+        data = await self._request_json(
+            method="GET",
+            url=url,
+        )
+
+        if not isinstance(data, dict):
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="Invalid get_test_case response from data_service",
+            )
+
+        return data
+
+    async def import_test_cases(
+        self,
+        project_id: int,
         payload: dict[str, Any],
     ) -> dict[str, Any]:
+        url = f"{self.base_url}/api/v1/projects/{project_id}/test-cases/import"
+        data = await self._request_json(
+            method="POST",
+            url=url,
+            json_payload=payload,
+        )
+
+        if not isinstance(data, dict):
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="Invalid import_test_cases response from data_service",
+            )
+
+        return data
+
+    async def reindex_test_cases(
+        self,
+        project_id: int,
+    ) -> dict[str, Any]:
+        url = f"{self.base_url}/api/v1/projects/{project_id}/test-cases/reindex"
+        data = await self._request_json(
+            method="POST",
+            url=url,
+        )
+
+        if not isinstance(data, dict):
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="Invalid reindex_test_cases response from data_service",
+            )
+
+        return data
+
+    async def _request_json(
+        self,
+        method: str,
+        url: str,
+        json_payload: dict[str, Any] | None = None,
+    ) -> Any:
         try:
             async with httpx.AsyncClient(
-                timeout=httpx.Timeout(20.0, connect=5.0)
+                timeout=httpx.Timeout(30.0, connect=5.0)
             ) as client:
-                response = await client.post(url, json=payload)
+                response = await client.request(
+                    method=method,
+                    url=url,
+                    json=json_payload,
+                )
                 response.raise_for_status()
 
             return response.json()
