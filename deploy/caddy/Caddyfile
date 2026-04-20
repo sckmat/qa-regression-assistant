@@ -1,0 +1,30 @@
+{
+    email {$CADDY_ACME_EMAIL}
+    admin off
+}
+
+{$PUBLIC_DOMAIN} {
+                 encode zstd gzip
+
+                 header {
+                        X-Content-Type-Options nosniff
+                        X-Frame-Options SAMEORIGIN
+                        Referrer-Policy strict-origin-when-cross-origin
+                        Permissions-Policy interest-cohort=()
+                        -Server
+                        }
+
+                 @api path /api/* /docs* /openapi.json
+                 handle @api {
+                             reverse_proxy user_service:8000
+                             }
+
+                 handle {
+                        reverse_proxy frontend:80
+                        }
+
+                 log {
+                     output stdout
+                     format console
+                     }
+}
