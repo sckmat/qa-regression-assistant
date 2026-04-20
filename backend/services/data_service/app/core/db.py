@@ -28,7 +28,6 @@ async def init_db() -> None:
             CreateSchema(settings.data_service_db_schema, if_not_exists=True)
         )
 
-        # Включаем pgvector extension в базе.
-        await connection.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+        # await connection.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
 
         await connection.run_sync(Base.metadata.create_all)

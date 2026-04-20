@@ -3,12 +3,12 @@ FROM node:20-alpine AS build
 WORKDIR /src/frontend
 
 COPY frontend/package*.json ./
-RUN npm ci
+RUN npm install
 
 COPY frontend/ ./
 
-ARG VITE_API_BASE=/api/v1
-ENV VITE_API_BASE=${VITE_API_BASE}
+ARG VITE_API_BASE_URL=
+ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
 
 RUN npm run build
 
