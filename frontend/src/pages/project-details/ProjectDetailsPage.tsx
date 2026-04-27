@@ -2,6 +2,7 @@ import { Link, useParams } from 'react-router-dom'
 
 import { useProjectQuery } from '../../entities/project/api/useProjectQuery'
 import { useRegressionRunsQuery } from '../../entities/regression-run/api/useRegressionRunsQuery'
+import { uiText } from '../../shared/constants/ui-text'
 import { ProjectOverviewCard } from '../../widgets/project-overview/ProjectOverviewCard'
 import { RunsPreview } from '../../widgets/runs-preview/RunsPreview'
 
@@ -24,7 +25,7 @@ export function ProjectDetailsPage() {
         return (
             <section className="page">
                 <div className="card">
-                    <p className="error-text">Некорректный projectId в URL.</p>
+                    <p className="error-text">Некорректный идентификатор проекта.</p>
                 </div>
             </section>
         )
@@ -34,24 +35,22 @@ export function ProjectDetailsPage() {
         <section className="page">
             <div className="page__header">
                 <div>
-                    <h2 className="page__title">Project Details</h2>
-                    <p className="page__description">
-                        Обзор проекта, быстрые действия и последние запуски анализа.
-                    </p>
+                    <h2 className="page__title">{uiText.projectDetails.title}</h2>
+                    <p className="page__description">{uiText.projectDetails.description}</p>
                 </div>
             </div>
 
             <div className="quick-actions">
                 <Link className="button" to={`/projects/${projectId}/runs/new`}>
-                    Новый запуск
+                    {uiText.projectDetails.newRunButton}
                 </Link>
 
                 <Link className="button button--secondary" to={`/projects/${projectId}/test-cases`}>
-                    Test Cases
+                    {uiText.projectDetails.testCasesButton}
                 </Link>
 
                 <Link className="button button--secondary" to={`/projects/${projectId}/runs`}>
-                    Runs
+                    {uiText.projectDetails.runsButton}
                 </Link>
             </div>
 
@@ -64,7 +63,7 @@ export function ProjectDetailsPage() {
             {projectQuery.isError ? (
                 <div className="card">
                     <p className="error-text">
-                        Не удалось загрузить проект. Проверь user_service и корректность projectId.
+                        Не удалось загрузить проект. Попробуйте обновить страницу.
                     </p>
                 </div>
             ) : null}
@@ -80,7 +79,7 @@ export function ProjectDetailsPage() {
             {runsQuery.isError ? (
                 <div className="card">
                     <p className="error-text">
-                        Не удалось загрузить список запусков проекта.
+                        Не удалось загрузить запуски проекта. Попробуйте позже.
                     </p>
                 </div>
             ) : null}

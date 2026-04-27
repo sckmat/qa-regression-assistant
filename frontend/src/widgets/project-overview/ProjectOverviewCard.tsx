@@ -1,4 +1,5 @@
 import type { Project } from '../../entities/project/model/types'
+import { uiText } from '../../shared/constants/ui-text'
 
 type ProjectOverviewCardProps = {
     project: Project
@@ -9,7 +10,7 @@ export function ProjectOverviewCard({ project }: ProjectOverviewCardProps) {
         <div className="card">
             <div className="project-overview">
                 <div className="project-overview__meta">
-                    <span className="project-overview__badge">Project #{project.id}</span>
+                    <span className="project-overview__badge">Проект #{project.id}</span>
                 </div>
 
                 <div className="project-overview__content">
@@ -17,7 +18,7 @@ export function ProjectOverviewCard({ project }: ProjectOverviewCardProps) {
                     <p className="project-overview__description">
                         {project.description?.trim()
                             ? project.description
-                            : 'Описание проекта пока не указано'}
+                            : uiText.common.noDescription}
                     </p>
                 </div>
             </div>

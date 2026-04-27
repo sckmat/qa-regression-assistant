@@ -1,9 +1,11 @@
 import { NavLink } from 'react-router-dom'
 
+import { uiText } from '../../shared/constants/ui-text'
+
 export function Sidebar() {
     return (
         <aside className="sidebar">
-            <div className="sidebar__logo">QA Assistant</div>
+            <div className="sidebar__logo">{uiText.app.title}</div>
 
             <nav className="sidebar__nav">
                 <NavLink
@@ -12,7 +14,7 @@ export function Sidebar() {
                         isActive ? 'sidebar__link sidebar__link--active' : 'sidebar__link'
                     }
                 >
-                    Projects
+                    {uiText.navigation.projects}
                 </NavLink>
             </nav>
         </aside>

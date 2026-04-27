@@ -2,6 +2,9 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 
 import { useCreateProjectMutation } from '../../../entities/project/api/useCreateProjectMutation'
+import { uiText } from '../../../shared/constants/ui-text'
+import { getUserErrorMessage } from '../../../shared/lib/get-user-error-message'
+import { useToast } from '../../../shared/ui/toast/useToast'
 import {
     createProjectSchema,
     type CreateProjectFormValues,
@@ -9,6 +12,7 @@ import {
 
 export function CreateProjectForm() {
     const createProjectMutation = useCreateProjectMutation()
+    const toast = useToast()
 
     const {
         register,
@@ -24,28 +28,33 @@ export function CreateProjectForm() {
     })
 
     const onSubmit = handleSubmit(async (values) => {
-        await createProjectMutation.mutateAsync({
-            name: values.name.trim(),
-            description: values.description?.trim() ? values.description.trim() : null,
-        })
+        try {
+            await createProjectMutation.mutateAsync({
+                name: values.name.trim(),
+                description: values.description?.trim() ? values.description.trim() : null,
+            })
 
-        reset()
+            toast.success(uiText.toasts.projectCreated)
+            reset()
+        } catch (error) {
+            toast.error(getUserErrorMessage(error))
+        }
     })
 
     return (
         <div className="card">
-            <h3 className="section-title">Создать проект</h3>
+            <h3 className="section-title">{uiText.projects.createTitle}</h3>
 
             <form className="project-form" onSubmit={onSubmit}>
                 <div className="field">
                     <label className="label" htmlFor="project-name">
-                        Название
+                        {uiText.projects.nameLabel}
                     </label>
 
                     <input
                         id="project-name"
                         className="input"
-                        placeholder="Например, Mobile Banking QA"
+                        placeholder={uiText.projects.namePlaceholder}
                         {...register('name')}
                     />
 
@@ -54,14 +63,14 @@ export function CreateProjectForm() {
 
                 <div className="field">
                     <label className="label" htmlFor="project-description">
-                        Описание
+                        {uiText.projects.descriptionLabel}
                     </label>
 
                     <textarea
                         id="project-description"
                         className="textarea"
                         rows={4}
-                        placeholder="Коротко опиши проект"
+                        placeholder={uiText.projects.descriptionPlaceholder}
                         {...register('description')}
                     />
 
@@ -70,19 +79,15 @@ export function CreateProjectForm() {
                     ) : null}
                 </div>
 
-                {createProjectMutation.isError ? (
-                    <p className="error-text">
-                        Не удалось создать проект. Проверь доступность backend.
-                    </p>
-                ) : null}
-
                 <div className="form-actions">
                     <button
                         className="button"
                         type="submit"
                         disabled={createProjectMutation.isPending}
                     >
-                        {createProjectMutation.isPending ? 'Создание...' : 'Создать проект'}
+                        {createProjectMutation.isPending
+                            ? uiText.projects.creatingButton
+                            : uiText.projects.createButton}
                     </button>
                 </div>
             </form>

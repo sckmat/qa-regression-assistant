@@ -202,28 +202,82 @@ class RegressionRunService:
         candidates: list[RetrievalCandidate],
         search_mode: str,
     ) -> str:
+        mode_label = self._get_search_mode_label(search_mode)
+
         if not candidates:
+            if search_mode == "lexical":
+                return (
+                    "Анализ завершен.\n\n"
+                    "Подходящие тест-кейсы по описанию изменений не найдены."
+                )
+
+            if search_mode == "semantic":
+                return (
+                    "Анализ завершен.\n\n"
+                    "Смысловой поиск не выявил подходящих тест-кейсов для данного изменения."
+                )
+
             return (
-                f"Data Service connected successfully. Search mode: {search_mode}. "
-                "No candidate test cases were found for the provided change summary."
+                "Анализ завершен.\n\n"
+                "После смыслового поиска и дополнительного уточнения результатов "
+                "подходящие тест-кейсы не были найдены."
             )
 
-        lines = [
-            "Data Service connected successfully.",
-            f"Search mode: {search_mode}.",
-            f"Found candidates: {len(candidates)}.",
-            "Top matches:",
+        top_candidate = candidates[0]
+        top_titles = [candidate.title for candidate in candidates[:3]]
+
+        unique_terms: list[str] = []
+        for candidate in candidates:
+            for term in candidate.matched_terms:
+                normalized = term.strip()
+                if normalized and normalized not in unique_terms:
+                    unique_terms.append(normalized)
+
+        lines: list[str] = [
+            f"Анализ завершен. Найдено {len(candidates)} релевантных тест-кейсов.",
+            f"Режим анализа: {mode_label}.",
+            "",
+            f"Наиболее релевантная проверка: «{top_candidate.title}».",
+            f"Оценка релевантности: {top_candidate.normalized_score}.",
         ]
 
-        for index, candidate in enumerate(candidates, start=1):
-            matched_terms = ", ".join(candidate.matched_terms) if candidate.matched_terms else "—"
-            explanation = candidate.explanation or "—"
-            lines.append(
-                f"{index}. test_case_id={candidate.source_test_case_id}, "
-                f"title='{candidate.title}', "
-                f"score={candidate.normalized_score}, "
-                f"matched_terms=[{matched_terms}], "
-                f"explanation='{explanation}'"
+        if len(top_titles) > 1:
+            lines.extend(
+                [
+                    "",
+                    "Также стоит обратить внимание на проверки:",
+                    *[f"— {title}" for title in top_titles[1:]],
+                ]
             )
 
+        if unique_terms:
+            lines.extend(
+                [
+                    "",
+                    "Ключевые темы, которые совпали с описанием изменений:",
+                    "— " + ", ".join(unique_terms[:5]),
+                ]
+            )
+
+        if search_mode == "semantic_llm":
+            explained_count = sum(
+                1 for candidate in candidates if candidate.explanation and candidate.explanation.strip()
+            )
+            if explained_count > 0:
+                lines.extend(
+                    [
+                        "",
+                        f"Для {explained_count} кандидатов дополнительно сформированы пояснения.",
+                    ]
+                )
+
         return "\n".join(lines)
+
+    def _get_search_mode_label(self, search_mode: str) -> str:
+        if search_mode == "lexical":
+            return "лексический"
+        if search_mode == "semantic":
+            return "семантический"
+        if search_mode == "semantic_llm":
+            return "семантический с дополнительным анализом модели"
+        return search_mode

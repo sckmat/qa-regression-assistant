@@ -3,10 +3,12 @@ import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 
 import { useCreateRegressionRunMutation } from '../../../entities/regression-run/api/useCreateRegressionRunMutation'
+import { uiText } from '../../../shared/constants/ui-text'
+import { getUserErrorMessage } from '../../../shared/lib/get-user-error-message'
+import { useToast } from '../../../shared/ui/toast/useToast'
 import {
     startRegressionRunSchema,
-    type StartRegressionRunFormInput,
-    type StartRegressionRunFormValues,
+    type StartRegressionRunFormValues, type StartRegressionRunFormInput,
 } from '../model/startRegressionRunSchema'
 
 type StartRegressionRunFormProps = {
@@ -16,18 +18,18 @@ type StartRegressionRunFormProps = {
 const modeOptions = [
     {
         value: 'lexical',
-        label: 'Lexical',
-        description: 'Базовый поиск по ключевым словам и matched terms.',
+        label: uiText.newRun.modes.lexical.label,
+        description: uiText.newRun.modes.lexical.description,
     },
     {
         value: 'semantic',
-        label: 'Semantic',
-        description: 'Семантический поиск по embeddings и pgvector.',
+        label: uiText.newRun.modes.semantic.label,
+        description: uiText.newRun.modes.semantic.description,
     },
     {
         value: 'semantic_llm',
-        label: 'Semantic + LLM',
-        description: 'Семантический поиск с последующим rerank и explanation от LLM.',
+        label: uiText.newRun.modes.semanticLlm.label,
+        description: uiText.newRun.modes.semanticLlm.description,
     },
 ] as const
 
@@ -36,6 +38,7 @@ export function StartRegressionRunForm({
                                        }: StartRegressionRunFormProps) {
     const navigate = useNavigate()
     const createRegressionRunMutation = useCreateRegressionRunMutation({ projectId })
+    const toast = useToast()
 
     const {
         register,
@@ -51,30 +54,35 @@ export function StartRegressionRunForm({
     })
 
     const onSubmit = handleSubmit(async (values) => {
-        const createdRun = await createRegressionRunMutation.mutateAsync({
-            change_summary: values.change_summary.trim(),
-            candidate_limit: values.candidate_limit,
-            search_mode: values.search_mode,
-        })
+        try {
+            const createdRun = await createRegressionRunMutation.mutateAsync({
+                change_summary: values.change_summary.trim(),
+                candidate_limit: values.candidate_limit,
+                search_mode: values.search_mode,
+            })
 
-        navigate(`/runs/${createdRun.id}`)
+            toast.success(uiText.toasts.runStarted)
+            navigate(`/runs/${createdRun.id}`)
+        } catch (error) {
+            toast.error(getUserErrorMessage(error))
+        }
     })
 
     return (
         <div className="card">
-            <h3 className="section-title">Новый запуск анализа</h3>
+            <h3 className="section-title">{uiText.newRun.formTitle}</h3>
 
             <form className="project-form" onSubmit={onSubmit}>
                 <div className="field">
                     <label className="label" htmlFor="change-summary">
-                        Описание изменений
+                        {uiText.newRun.changeSummaryLabel}
                     </label>
 
                     <textarea
                         id="change-summary"
                         className="textarea textarea--large"
                         rows={8}
-                        placeholder="Например: Изменен экран логина, добавлена валидация email и обработка ошибки 401..."
+                        placeholder={uiText.newRun.changeSummaryPlaceholder}
                         {...register('change_summary')}
                     />
 
@@ -86,7 +94,7 @@ export function StartRegressionRunForm({
                 <div className="form-grid">
                     <div className="field">
                         <label className="label" htmlFor="candidate-limit">
-                            Candidate limit
+                            {uiText.newRun.candidateLimitLabel}
                         </label>
 
                         <input
@@ -105,7 +113,7 @@ export function StartRegressionRunForm({
 
                     <div className="field">
                         <label className="label" htmlFor="search-mode">
-                            Режим поиска
+                            {uiText.newRun.searchModeLabel}
                         </label>
 
                         <select
@@ -135,12 +143,6 @@ export function StartRegressionRunForm({
                     ))}
                 </div>
 
-                {createRegressionRunMutation.isError ? (
-                    <p className="error-text">
-                        Не удалось создать запуск. Проверь доступность user_service, data_service и llm_service.
-                    </p>
-                ) : null}
-
                 <div className="form-actions">
                     <button
                         className="button"
@@ -148,8 +150,8 @@ export function StartRegressionRunForm({
                         disabled={createRegressionRunMutation.isPending}
                     >
                         {createRegressionRunMutation.isPending
-                            ? 'Запуск...'
-                            : 'Запустить анализ'}
+                            ? uiText.newRun.submittingButton
+                            : uiText.newRun.submitButton}
                     </button>
                 </div>
             </form>

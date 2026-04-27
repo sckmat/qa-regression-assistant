@@ -1,6 +1,7 @@
 import { Link, useParams } from 'react-router-dom'
 
 import { useRegressionRunsQuery } from '../../entities/regression-run/api/useRegressionRunsQuery'
+import { uiText } from '../../shared/constants/ui-text'
 import { RunsList } from '../../widgets/runs-list/RunsList'
 
 function parseProjectId(value: string | undefined): number {
@@ -21,7 +22,7 @@ export function RunsPage() {
         return (
             <section className="page">
                 <div className="card">
-                    <p className="error-text">Некорректный projectId в URL.</p>
+                    <p className="error-text">Некорректный идентификатор проекта.</p>
                 </div>
             </section>
         )
@@ -31,14 +32,12 @@ export function RunsPage() {
         <section className="page">
             <div className="page__header">
                 <div>
-                    <h2 className="page__title">Runs</h2>
-                    <p className="page__description">
-                        История запусков анализа по проекту.
-                    </p>
+                    <h2 className="page__title">{uiText.runs.title}</h2>
+                    <p className="page__description">{uiText.runs.description}</p>
                 </div>
 
                 <Link className="button" to={`/projects/${projectId}/runs/new`}>
-                    Новый запуск
+                    {uiText.runs.newRunButton}
                 </Link>
             </div>
 
@@ -51,7 +50,7 @@ export function RunsPage() {
             {runsQuery.isError ? (
                 <div className="card">
                     <p className="error-text">
-                        Не удалось загрузить запуски проекта.
+                        Не удалось загрузить список запусков. Попробуйте позже.
                     </p>
                 </div>
             ) : null}

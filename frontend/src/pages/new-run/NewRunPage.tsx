@@ -1,5 +1,6 @@
 import { Link, useParams } from 'react-router-dom'
 
+import { uiText } from '../../shared/constants/ui-text'
 import { StartRegressionRunForm } from '../../features/start-regression-run/ui/StartRegressionRunForm'
 
 function parseProjectId(value: string | undefined): number {
@@ -18,7 +19,7 @@ export function NewRunPage() {
         return (
             <section className="page">
                 <div className="card">
-                    <p className="error-text">Некорректный projectId в URL.</p>
+                    <p className="error-text">Некорректный идентификатор проекта.</p>
                 </div>
             </section>
         )
@@ -28,14 +29,12 @@ export function NewRunPage() {
         <section className="page">
             <div className="page__header">
                 <div>
-                    <h2 className="page__title">New Regression Run</h2>
-                    <p className="page__description">
-                        Запусти анализ изменений и получи регрессионный набор тест-кейсов.
-                    </p>
+                    <h2 className="page__title">{uiText.newRun.title}</h2>
+                    <p className="page__description">{uiText.newRun.description}</p>
                 </div>
 
                 <Link className="button button--secondary" to={`/projects/${projectId}/runs`}>
-                    К списку запусков
+                    {uiText.newRun.backButton}
                 </Link>
             </div>
 

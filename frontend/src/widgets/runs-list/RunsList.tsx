@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 
 import type { RegressionRun } from '../../entities/regression-run/model/types'
+import { uiText } from '../../shared/constants/ui-text'
 
 type RunsListProps = {
     runs: RegressionRun[]
@@ -23,10 +24,8 @@ export function RunsList({ runs }: RunsListProps) {
     if (runs.length === 0) {
         return (
             <div className="card empty-state">
-                <p className="empty-state__title">Запусков пока нет</p>
-                <p className="empty-state__description">
-                    Создай первый run, чтобы увидеть результаты интеллектуального отбора тест-кейсов.
-                </p>
+                <p className="empty-state__title">{uiText.runs.noRunsTitle}</p>
+                <p className="empty-state__description">{uiText.runs.noRunsDescription}</p>
             </div>
         )
     }
@@ -37,7 +36,7 @@ export function RunsList({ runs }: RunsListProps) {
                 <Link key={run.id} to={`/runs/${run.id}`} className="run-card">
                     <div className="run-card__header">
                         <div className="run-card__title-wrap">
-                            <h4 className="run-card__title">Run #{run.id}</h4>
+                            <h4 className="run-card__title">Запуск #{run.id}</h4>
                             <span className="run-card__status">{run.status}</span>
                         </div>
 
@@ -47,9 +46,7 @@ export function RunsList({ runs }: RunsListProps) {
                     <p className="run-card__summary">{run.change_summary}</p>
 
                     {run.result_summary ? (
-                        <p className="run-card__meta">
-                            Summary available
-                        </p>
+                        <p className="run-card__meta">{uiText.runs.summaryAvailable}</p>
                     ) : null}
                 </Link>
             ))}

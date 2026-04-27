@@ -1,4 +1,5 @@
 import type { RegressionRunCandidate } from '../../entities/regression-run/model/types'
+import { uiText } from '../../shared/constants/ui-text'
 
 type CandidatesListProps = {
     candidates: RegressionRunCandidate[]
@@ -8,9 +9,9 @@ export function CandidatesList({ candidates }: CandidatesListProps) {
     if (candidates.length === 0) {
         return (
             <div className="card empty-state">
-                <p className="empty-state__title">Кандидаты не найдены</p>
+                <p className="empty-state__title">{uiText.runDetails.candidatesEmptyTitle}</p>
                 <p className="empty-state__description">
-                    Для этого запуска не было найдено релевантных тест-кейсов.
+                    {uiText.runDetails.candidatesEmptyDescription}
                 </p>
             </div>
         )
@@ -24,18 +25,20 @@ export function CandidatesList({ candidates }: CandidatesListProps) {
                         <div className="candidate-card__title-wrap">
                             <h4 className="candidate-card__title">{candidate.title}</h4>
                             <span className="candidate-card__id">
-                TC #{candidate.source_test_case_id}
+                Тест-кейс #{candidate.source_test_case_id}
               </span>
                         </div>
 
                         <span className="candidate-card__score">
-              Score: {candidate.relevance_score}
+              {uiText.common.score}: {candidate.relevance_score}
             </span>
                     </div>
 
                     <div className="candidate-card__sections">
                         <div className="candidate-card__section">
-                            <p className="candidate-card__label">Matched terms</p>
+                            <p className="candidate-card__label">
+                                {uiText.runDetails.matchedTermsLabel}
+                            </p>
 
                             {candidate.matched_terms.length > 0 ? (
                                 <div className="candidate-card__tags">
@@ -46,16 +49,20 @@ export function CandidatesList({ candidates }: CandidatesListProps) {
                                     ))}
                                 </div>
                             ) : (
-                                <p className="candidate-card__empty">Нет matched terms</p>
+                                <p className="candidate-card__empty">
+                                    {uiText.runDetails.noMatchedTerms}
+                                </p>
                             )}
                         </div>
 
                         <div className="candidate-card__section">
-                            <p className="candidate-card__label">Explanation</p>
+                            <p className="candidate-card__label">
+                                {uiText.runDetails.explanationLabel}
+                            </p>
                             <p className="candidate-card__text">
                                 {candidate.explanation?.trim()
                                     ? candidate.explanation
-                                    : 'Explanation отсутствует для этого режима запуска'}
+                                    : uiText.runDetails.noExplanation}
                             </p>
                         </div>
                     </div>

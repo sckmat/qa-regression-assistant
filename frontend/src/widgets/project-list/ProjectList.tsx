@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 
 import type { Project } from '../../entities/project/model/types'
+import { uiText } from '../../shared/constants/ui-text'
 
 type ProjectListProps = {
     projects: Project[]
@@ -10,9 +11,9 @@ export function ProjectList({ projects }: ProjectListProps) {
     if (projects.length === 0) {
         return (
             <div className="card empty-state">
-                <p className="empty-state__title">Проектов пока нет</p>
+                <p className="empty-state__title">{uiText.projects.emptyTitle}</p>
                 <p className="empty-state__description">
-                    Создай первый проект, чтобы начать импорт тест-кейсов и запуск анализа.
+                    {uiText.projects.emptyDescription}
                 </p>
             </div>
         )
@@ -30,7 +31,7 @@ export function ProjectList({ projects }: ProjectListProps) {
                     <p className="project-card__description">
                         {project.description?.trim()
                             ? project.description
-                            : 'Описание пока не указано'}
+                            : uiText.common.noDescription}
                     </p>
                 </Link>
             ))}

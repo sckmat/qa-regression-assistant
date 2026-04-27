@@ -1,4 +1,5 @@
 import type { RegressionRunDetails } from '../../entities/regression-run/model/types'
+import { uiText } from '../../shared/constants/ui-text'
 
 type RunOverviewCardProps = {
     run: RegressionRunDetails
@@ -17,13 +18,13 @@ function formatDate(value: string) {
     }).format(date)
 }
 
-export function RunOverviewCard({ run }: RunOverviewCardProps) {
+function RunOverviewCard({ run }: RunOverviewCardProps) {
     return (
         <div className="card">
             <div className="run-overview">
                 <div className="run-overview__header">
                     <div className="run-overview__title-wrap">
-                        <h3 className="run-overview__title">Run #{run.id}</h3>
+                        <h3 className="run-overview__title">Запуск #{run.id}</h3>
                         <span className="run-overview__status">{run.status}</span>
                     </div>
 
@@ -31,26 +32,28 @@ export function RunOverviewCard({ run }: RunOverviewCardProps) {
                 </div>
 
                 <div className="run-overview__meta">
-                    <span className="run-overview__badge">Project #{run.project_id}</span>
+                    <span className="run-overview__badge">Проект #{run.project_id}</span>
                     <span className="run-overview__badge">
-            Candidates: {run.candidates.length}
+            Кандидатов: {run.candidates.length}
           </span>
                 </div>
 
                 <div className="run-overview__section">
-                    <p className="run-overview__label">Change summary</p>
+                    <p className="run-overview__label">{uiText.runDetails.changeSummaryLabel}</p>
                     <p className="run-overview__text">{run.change_summary}</p>
                 </div>
 
                 <div className="run-overview__section">
-                    <p className="run-overview__label">Result summary</p>
+                    <p className="run-overview__label">{uiText.runDetails.resultSummaryLabel}</p>
                     <pre className="run-overview__summary">
             {run.result_summary?.trim()
                 ? run.result_summary
-                : 'Result summary пока отсутствует'}
+                : 'Итоговый summary пока отсутствует'}
           </pre>
                 </div>
             </div>
         </div>
     )
 }
+
+export default RunOverviewCard

@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 
 import type { RegressionRun } from '../../entities/regression-run/model/types'
+import { uiText } from '../../shared/constants/ui-text'
 
 type RunsPreviewProps = {
     projectId: number
@@ -27,22 +28,20 @@ export function RunsPreview({ projectId, runs }: RunsPreviewProps) {
         <div className="card">
             <div className="section-header">
                 <div>
-                    <h3 className="section-title">Последние запуски</h3>
-                    <p className="muted-text">
-                        Краткая история запусков анализа по проекту.
-                    </p>
+                    <h3 className="section-title">{uiText.projectDetails.latestRunsTitle}</h3>
+                    <p className="muted-text">{uiText.projectDetails.latestRunsDescription}</p>
                 </div>
 
                 <Link className="button button--secondary" to={`/projects/${projectId}/runs`}>
-                    Все запуски
+                    {uiText.projectDetails.allRunsButton}
                 </Link>
             </div>
 
             {latestRuns.length === 0 ? (
                 <div className="empty-state">
-                    <p className="empty-state__title">Запусков пока нет</p>
+                    <p className="empty-state__title">{uiText.projectDetails.noRunsTitle}</p>
                     <p className="empty-state__description">
-                        Создай первый run, чтобы увидеть результаты отбора тест-кейсов.
+                        {uiText.projectDetails.noRunsDescription}
                     </p>
                 </div>
             ) : (
@@ -51,7 +50,7 @@ export function RunsPreview({ projectId, runs }: RunsPreviewProps) {
                         <Link key={run.id} to={`/runs/${run.id}`} className="run-card">
                             <div className="run-card__header">
                                 <div className="run-card__title-wrap">
-                                    <h4 className="run-card__title">Run #{run.id}</h4>
+                                    <h4 className="run-card__title">Запуск #{run.id}</h4>
                                     <span className="run-card__status">{run.status}</span>
                                 </div>
 

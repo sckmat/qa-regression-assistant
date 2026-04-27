@@ -1,6 +1,9 @@
 import {type ChangeEvent, useState } from 'react'
 
 import { useImportTestCasesFileMutation } from '../../../entities/test-case/api/useImportTestCasesFileMutation'
+import { uiText } from '../../../shared/constants/ui-text'
+import { getUserErrorMessage } from '../../../shared/lib/get-user-error-message'
+import { useToast } from '../../../shared/ui/toast/useToast'
 
 type ImportTestCasesCardProps = {
     projectId: number
@@ -8,6 +11,7 @@ type ImportTestCasesCardProps = {
 
 export function ImportTestCasesCard({ projectId }: ImportTestCasesCardProps) {
     const importMutation = useImportTestCasesFileMutation({ projectId })
+    const toast = useToast()
     const [selectedFile, setSelectedFile] = useState<File | null>(null)
 
     const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -20,13 +24,18 @@ export function ImportTestCasesCard({ projectId }: ImportTestCasesCardProps) {
             return
         }
 
-        await importMutation.mutateAsync(selectedFile)
-        setSelectedFile(null)
+        try {
+            await importMutation.mutateAsync(selectedFile)
+            toast.success(uiText.toasts.fileImported)
+            setSelectedFile(null)
+        } catch (error) {
+            toast.error(getUserErrorMessage(error))
+        }
     }
 
     return (
         <div className="card">
-            <h3 className="section-title">Импорт test cases</h3>
+            <h3 className="section-title">{uiText.testCases.importTitle}</h3>
 
             <div className="upload-panel">
                 <div className="field">
@@ -44,26 +53,15 @@ export function ImportTestCasesCard({ projectId }: ImportTestCasesCardProps) {
                 </div>
 
                 <div className="upload-panel__meta">
-                    <p className="muted-text">
-                        Поддерживается JSON-файл формата с корневым полем <code>items</code>.
-                    </p>
+                    <p className="muted-text">{uiText.testCases.importHint}</p>
 
                     {selectedFile ? (
                         <p className="upload-panel__filename">
-                            Выбран файл: <strong>{selectedFile.name}</strong>
+                            {uiText.testCases.selectedFilePrefix}{' '}
+                            <strong>{selectedFile.name}</strong>
                         </p>
                     ) : null}
                 </div>
-
-                {importMutation.isError ? (
-                    <p className="error-text">
-                        Не удалось импортировать файл. Проверь формат JSON и доступность backend.
-                    </p>
-                ) : null}
-
-                {importMutation.isSuccess ? (
-                    <p className="success-text">Файл успешно импортирован.</p>
-                ) : null}
 
                 <div className="form-actions">
                     <button
@@ -72,7 +70,9 @@ export function ImportTestCasesCard({ projectId }: ImportTestCasesCardProps) {
                         disabled={!selectedFile || importMutation.isPending}
                         onClick={handleImport}
                     >
-                        {importMutation.isPending ? 'Импорт...' : 'Импортировать файл'}
+                        {importMutation.isPending
+                            ? uiText.testCases.importingButton
+                            : uiText.testCases.importButton}
                     </button>
                 </div>
             </div>

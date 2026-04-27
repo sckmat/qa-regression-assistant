@@ -1,4 +1,5 @@
 import type { TestCase } from '../../entities/test-case/model/types'
+import { uiText } from '../../shared/constants/ui-text'
 
 type TestCasesListProps = {
     testCases: TestCase[]
@@ -8,9 +9,9 @@ export function TestCasesList({ testCases }: TestCasesListProps) {
     if (testCases.length === 0) {
         return (
             <div className="card empty-state">
-                <p className="empty-state__title">Test cases пока нет</p>
+                <p className="empty-state__title">{uiText.testCases.emptyTitle}</p>
                 <p className="empty-state__description">
-                    Импортируй JSON-файл, чтобы загрузить тест-кейсы проекта.
+                    {uiText.testCases.emptyDescription}
                 </p>
             </div>
         )
@@ -44,14 +45,14 @@ export function TestCasesList({ testCases }: TestCasesListProps) {
 
                     {testCase.expected_result ? (
                         <div className="test-case-card__section">
-                            <p className="test-case-card__label">Expected result</p>
+                            <p className="test-case-card__label">{uiText.testCases.expectedResult}</p>
                             <p className="test-case-card__text">{testCase.expected_result}</p>
                         </div>
                     ) : null}
 
                     {testCase.tags?.length ? (
                         <div className="test-case-card__section">
-                            <p className="test-case-card__label">Tags</p>
+                            <p className="test-case-card__label">{uiText.testCases.tags}</p>
                             <div className="test-case-card__tags">
                                 {testCase.tags.map((tag) => (
                                     <span key={tag} className="test-case-card__tag">

@@ -28,6 +28,9 @@ export async function createRegressionRun(
     const response = await httpClient.post<RegressionRun>(
         `/api/v1/projects/${projectId}/regression-runs`,
         payload,
+        {
+            timeout: 120000,
+        },
     )
 
     return response.data
