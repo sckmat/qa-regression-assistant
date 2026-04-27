@@ -5,6 +5,7 @@ import { useRegressionRunsQuery } from '../../entities/regression-run/api/useReg
 import { uiText } from '../../shared/constants/ui-text'
 import { ProjectOverviewCard } from '../../widgets/project-overview/ProjectOverviewCard'
 import { RunsPreview } from '../../widgets/runs-preview/RunsPreview'
+import { DeleteProjectButton } from '../../features/delete-project/ui/DeleteProjectButton'
 
 function parseProjectId(value: string | undefined): number {
     if (!value) {
@@ -52,6 +53,13 @@ export function ProjectDetailsPage() {
                 <Link className="button button--secondary" to={`/projects/${projectId}/runs`}>
                     {uiText.projectDetails.runsButton}
                 </Link>
+
+                {projectQuery.data ? (
+                    <DeleteProjectButton
+                        projectId={projectId}
+                        projectName={projectQuery.data.name}
+                    />
+                ) : null}
             </div>
 
             {projectQuery.isLoading ? (

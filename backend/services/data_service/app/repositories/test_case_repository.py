@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sqlalchemy import or_, select
+from sqlalchemy import or_, select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.data_service.app.models.test_case import TestCase
@@ -36,6 +36,18 @@ class TestCaseRepository:
             select(TestCase).where(TestCase.id == test_case_id)
         )
         return result.scalar_one_or_none()
+
+    async def list_ids_by_project_id(self, project_id: int) -> list[int]:
+        result = await self.session.execute(
+            select(TestCase.id).where(TestCase.project_id == project_id)
+        )
+        return list(result.scalars().all())
+
+    async def delete_by_project_id(self, project_id: int) -> int:
+        result = await self.session.execute(
+            delete(TestCase).where(TestCase.project_id == project_id)
+        )
+        return result.rowcount or 0
 
     async def search_candidates(
         self,

@@ -1,5 +1,9 @@
 import { httpClient } from '../../../shared/api/http-client'
-import type { ReindexResponse, TestCase } from '../model/types'
+import type {
+    ImportTestCasesFileResponse,
+    ReindexResponse,
+    TestCase,
+} from '../model/types'
 
 export async function listTestCases(projectId: number): Promise<TestCase[]> {
     const response = await httpClient.get<TestCase[]>(
@@ -12,17 +16,18 @@ export async function listTestCases(projectId: number): Promise<TestCase[]> {
 export async function importTestCasesFile(
     projectId: number,
     file: File,
-): Promise<unknown> {
+): Promise<ImportTestCasesFileResponse> {
     const formData = new FormData()
     formData.append('file', file)
 
-    const response = await httpClient.post(
+    const response = await httpClient.post<ImportTestCasesFileResponse>(
         `/api/v1/projects/${projectId}/test-cases/import-file`,
         formData,
         {
             headers: {
                 'Content-Type': 'multipart/form-data',
             },
+            timeout: 120000,
         },
     )
 

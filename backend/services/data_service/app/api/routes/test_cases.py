@@ -134,3 +134,17 @@ async def semantic_search_test_cases(
     """
     service = SemanticSearchService(session)
     return await service.semantic_search(project_id, payload)
+
+@router.delete(
+    "/projects/{project_id}",
+)
+async def delete_project_test_cases(
+    project_id: int,
+    session: AsyncSession = Depends(get_db_session),
+) -> dict:
+    """
+    Удаляет все test cases и embeddings проекта.
+    Используется user_service при удалении проекта.
+    """
+    service = TestCaseService(session)
+    return await service.delete_project_test_cases(project_id)

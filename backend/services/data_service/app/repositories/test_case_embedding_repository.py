@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.data_service.app.models.test_case_embedding import TestCaseEmbedding
@@ -47,3 +47,14 @@ class TestCaseEmbeddingRepository:
 
         await self.session.flush()
         return entity
+
+    async def delete_by_test_case_ids(self, test_case_ids: list[int]) -> int:
+        if not test_case_ids:
+            return 0
+
+        result = await self.session.execute(
+            delete(TestCaseEmbedding).where(
+                TestCaseEmbedding.test_case_id.in_(test_case_ids)
+            )
+        )
+        return result.rowcount or 0

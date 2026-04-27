@@ -40,3 +40,7 @@ class ProjectRepository:
             select(Project).where(Project.name == name)
         )
         return result.scalar_one_or_none()
+
+    async def delete(self, project) -> None:
+        await self.session.delete(project)
+        await self.session.flush()

@@ -27,9 +27,9 @@ class TestCaseGatewayService:
         return await self.data_service_client.get_test_case(test_case_id)
 
     async def import_test_cases_file(
-        self,
-        project_id: int,
-        file: UploadFile,
+            self,
+            project_id: int,
+            file: UploadFile,
     ) -> dict[str, Any]:
         await self._ensure_project_exists(project_id)
 
@@ -81,10 +81,26 @@ class TestCaseGatewayService:
                 detail="JSON must contain field 'items' as array.",
             )
 
-        return await self.data_service_client.import_test_cases(
+        import_result = await self.data_service_client.import_test_cases(
             project_id=project_id,
             payload=parsed_payload,
         )
+
+        try:
+            reindex_result = await self.data_service_client.reindex_test_cases(project_id)
+            return {
+                "status": "completed",
+                "message": "Тест-кейсы успешно загружены и переиндексированы.",
+                "import_result": import_result,
+                "reindex_result": reindex_result,
+            }
+        except HTTPException as exc:
+            return {
+                "status": "partial_success",
+                "message": "Тест-кейсы загружены, но переиндексация не завершилась.",
+                "import_result": import_result,
+                "reindex_error": exc.detail,
+            }
 
     async def reindex_test_cases(self, project_id: int) -> dict[str, Any]:
         await self._ensure_project_exists(project_id)

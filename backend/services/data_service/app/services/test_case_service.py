@@ -12,6 +12,12 @@ from services.data_service.app.schemas.test_case import (
     TestCaseSearchResult,
 )
 from services.data_service.app.services.text_processing_service import TextProcessingService
+from services.data_service.app.repositories.test_case_repository import (
+    TestCaseRepository,
+)
+from services.data_service.app.repositories.test_case_embedding_repository import (
+    TestCaseEmbeddingRepository,
+)
 
 
 class TestCaseService:
@@ -25,8 +31,11 @@ class TestCaseService:
     """
 
     def __init__(self, session: AsyncSession):
+        self.session = session
         self.repository = TestCaseRepository(session)
         self.text_processing = TextProcessingService()
+        self.test_case_repository = TestCaseRepository(session)
+        self.test_case_embedding_repository = TestCaseEmbeddingRepository(session)
 
     async def import_test_cases(
         self,
@@ -134,3 +143,20 @@ class TestCaseService:
             query=query,
             candidates=ranked[:limit],
         )
+
+    async def delete_project_test_cases(self, project_id: int) -> dict:
+        test_case_ids = await self.test_case_repository.list_ids_by_project_id(project_id)
+
+        deleted_embeddings = await self.test_case_embedding_repository.delete_by_test_case_ids(
+            test_case_ids
+        )
+        deleted_test_cases = await self.test_case_repository.delete_by_project_id(project_id)
+
+        await self.session.commit()
+
+        return {
+            "project_id": project_id,
+            "deleted_test_cases": deleted_test_cases,
+            "deleted_embeddings": deleted_embeddings,
+            "status": "completed",
+        }

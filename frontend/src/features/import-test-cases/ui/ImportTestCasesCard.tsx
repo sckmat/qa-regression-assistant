@@ -25,8 +25,16 @@ export function ImportTestCasesCard({ projectId }: ImportTestCasesCardProps) {
         }
 
         try {
-            await importMutation.mutateAsync(selectedFile)
-            toast.success(uiText.toasts.fileImported)
+            const result = await importMutation.mutateAsync(selectedFile)
+
+            if (result.status === 'completed') {
+                toast.success('Файл загружен, тест-кейсы автоматически переиндексированы.')
+            } else {
+                toast.info(
+                    'Файл загружен, но автоматическая переиндексация не завершилась. Ее можно запустить вручную.',
+                )
+            }
+
             setSelectedFile(null)
         } catch (error) {
             toast.error(getUserErrorMessage(error))
@@ -53,7 +61,10 @@ export function ImportTestCasesCard({ projectId }: ImportTestCasesCardProps) {
                 </div>
 
                 <div className="upload-panel__meta">
-                    <p className="muted-text">{uiText.testCases.importHint}</p>
+                    <p className="muted-text">
+                        Поддерживается JSON-файл с корневым полем <code>items</code>. После загрузки
+                        автоматически запускается переиндексация.
+                    </p>
 
                     {selectedFile ? (
                         <p className="upload-panel__filename">

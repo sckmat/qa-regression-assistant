@@ -21,3 +21,11 @@ export type ReindexResponse = {
     indexed_test_cases: number
     status: string
 }
+
+export type ImportTestCasesFileResponse = {
+    status: 'completed' | 'partial_success'
+    message: string
+    import_result: unknown
+    reindex_result?: ReindexResponse
+    reindex_error?: string
+}

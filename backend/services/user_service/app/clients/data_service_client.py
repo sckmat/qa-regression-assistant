@@ -242,3 +242,21 @@ class DataServiceClient:
                 status_code=status.HTTP_502_BAD_GATEWAY,
                 detail=f"Request to data_service failed: {exc}",
             ) from exc
+
+    async def delete_project_data(
+        self,
+        project_id: int,
+    ) -> dict[str, Any]:
+        url = f"{self.base_url}/api/v1/projects/{project_id}"
+        data = await self._request_json(
+            method="DELETE",
+            url=url,
+        )
+
+        if not isinstance(data, dict):
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="Invalid delete_project_data response from data_service",
+            )
+
+        return data
