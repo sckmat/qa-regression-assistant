@@ -903,3 +903,12 @@ select.input {
         white-space: normal;
     }
 }
+
+.button--danger {
+    background: #dc2626;
+    color: #ffffff;
+}
+
+.button--danger:hover {
+    background: #b91c1c;
+}

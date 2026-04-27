@@ -12,11 +12,8 @@ from services.llm_service.app.schemas.rerank import (
 
 class OpenAICompatibleProvider(LLMProvider):
     """
-    Универсальный провайдер поверх OpenAI-compatible chat/completions API.
-
-    Подходит и для:
-    - OpenAI
-    - Ollama (через /v1/chat/completions)
+    Провайдер поверх OpenAI Responses API.
+    Использует structured outputs через text.format/json_schema.
     """
 
     def __init__(
@@ -37,27 +34,74 @@ class OpenAICompatibleProvider(LLMProvider):
         candidates: list[RerankCandidateInput],
         top_n: int,
     ) -> LLMStructuredRerankOutput:
-        messages = self._build_messages(
-            change_summary=change_summary,
-            candidates=candidates,
-            top_n=top_n,
+        candidates_payload = [
+            {
+                "test_case_id": candidate.test_case_id,
+                "title": candidate.title,
+                "raw_text": candidate.raw_text,
+                "retrieval_score": candidate.retrieval_score,
+            }
+            for candidate in candidates
+        ]
+
+        instructions = (
+            "Ты — QA assistant для отбора регрессионных тест-кейсов. "
+            "Тебе дано описание изменений и список уже найденных кандидатов. "
+            "Нужно выбрать наиболее релевантные тест-кейсы для регресса. "
+            "Оценивай только по переданным данным. "
+            "Не придумывай тест-кейсы, которых нет во входном списке. "
+            f"Верни не более {top_n} элементов в items. "
+            "Для каждого элемента верни test_case_id, is_relevant, llm_score от 0 до 100 "
+            "и краткое explanation на русском языке."
         )
 
-        response_format = {
-            "type": "json_schema",
-            "json_schema": {
-                "name": "rerank_response",
-                "strict": True,
-                "schema": LLMStructuredRerankOutput.model_json_schema(),
-            },
+        user_payload = {
+            "change_summary": change_summary,
+            "top_n": top_n,
+            "candidates": candidates_payload,
         }
 
         payload = {
             "model": self.model,
-            "messages": messages,
-            "temperature": 0,
-            "stream": False,
-            "response_format": response_format,
+            "instructions": instructions,
+            "input": json.dumps(user_payload, ensure_ascii=False, indent=2),
+            "text": {
+                "format": {
+                    "type": "json_schema",
+                    "name": "rerank_response",
+                    "strict": True,
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "items": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "test_case_id": {"type": "integer"},
+                                        "is_relevant": {"type": "boolean"},
+                                        "llm_score": {
+                                            "type": "integer",
+                                            "minimum": 0,
+                                            "maximum": 100,
+                                        },
+                                        "explanation": {"type": "string"},
+                                    },
+                                    "required": [
+                                        "test_case_id",
+                                        "is_relevant",
+                                        "llm_score",
+                                        "explanation",
+                                    ],
+                                    "additionalProperties": False,
+                                },
+                            }
+                        },
+                        "required": ["items"],
+                        "additionalProperties": False,
+                    },
+                }
+            },
         }
 
         headers = {
@@ -70,77 +114,64 @@ class OpenAICompatibleProvider(LLMProvider):
             timeout=httpx.Timeout(self.timeout_seconds, connect=10.0)
         ) as client:
             response = await client.post(
-                f"{self.base_url}/chat/completions",
+                f"{self.base_url}/responses",
                 json=payload,
                 headers=headers,
             )
-            response.raise_for_status()
+
+        if response.is_error:
+            raise RuntimeError(
+                f"OpenAI Responses API error: status={response.status_code}, body={response.text}"
+            )
 
         data = response.json()
 
-        try:
-            content = data["choices"][0]["message"]["content"]
-        except (KeyError, IndexError) as exc:
-            raise ValueError(f"Unexpected LLM response format: {data}") from exc
-
-        if isinstance(content, list):
-            # На всякий случай поддерживаем content как массив частей.
-            content = "".join(
-                part.get("text", "")
-                for part in content
-                if isinstance(part, dict)
-            )
+        content_text = self._extract_output_text(data)
 
         try:
-            parsed = json.loads(content)
+            parsed = json.loads(content_text)
         except json.JSONDecodeError as exc:
-            raise ValueError(f"LLM returned invalid JSON: {content}") from exc
+            raise ValueError(
+                f"LLM returned invalid JSON: {content_text}"
+            ) from exc
 
         try:
             return LLMStructuredRerankOutput.model_validate(parsed)
         except ValidationError as exc:
-            raise ValueError(f"LLM JSON does not match schema: {exc}") from exc
+            raise ValueError(
+                f"LLM JSON does not match schema: {exc}. Raw JSON: {parsed}"
+            ) from exc
 
-    def _build_messages(
-        self,
-        change_summary: str,
-        candidates: list[RerankCandidateInput],
-        top_n: int,
-    ) -> list[dict]:
-        candidates_payload = [
-            {
-                "test_case_id": candidate.test_case_id,
-                "title": candidate.title,
-                "raw_text": candidate.raw_text,
-                "retrieval_score": candidate.retrieval_score,
-            }
-            for candidate in candidates
-        ]
+    def _extract_output_text(self, data: dict) -> str:
+        """
+        Извлекает текстовый output из ответа Responses API.
+        Ищем assistant message -> content[type=output_text] -> text.
+        """
+        output = data.get("output", [])
+        if not isinstance(output, list):
+            raise ValueError(f"Unexpected Responses API format: {data}")
 
-        system_prompt = (
-            "Ты — QA assistant для отбора регрессионных тест-кейсов. "
-            "Тебе дано описание изменений и список уже найденных кандидатов. "
-            "Нужно выбрать наиболее релевантные тест-кейсы для регресса. "
-            "Для каждого кандидата верни test_case_id, is_relevant, llm_score от 0 до 100 "
-            "и краткое explanation на русском языке. "
-            "Оценивай только по переданным данным. "
-            "Не придумывай тест-кейсы, которых нет во входном списке. "
-            f"Верни не более {top_n} элементов в items."
-        )
+        collected_parts: list[str] = []
 
-        user_payload = {
-            "change_summary": change_summary,
-            "top_n": top_n,
-            "candidates": candidates_payload,
-        }
+        for item in output:
+            if not isinstance(item, dict):
+                continue
+            if item.get("type") != "message":
+                continue
 
-        return [
-            {
-                "role": "system",
-                "content": system_prompt,
-            },
-            {
-                "role": "user",
-                "content": json.dumps(user_payload, ensure_ascii=False, indent=2),
-            },
-        ]
+            content = item.get("content", [])
+            if not isinstance(content, list):
+                continue
+
+            for part in content:
+                if not isinstance(part, dict):
+                    continue
+                if part.get("type") == "output_text":
+                    text = part.get("text")
+                    if isinstance(text, str) and text.strip():
+                        collected_parts.append(text)
+
+        if not collected_parts:
+            raise ValueError(f"Could not extract output_text from Responses API: {data}")
+
+        return "\n".join(collected_parts)

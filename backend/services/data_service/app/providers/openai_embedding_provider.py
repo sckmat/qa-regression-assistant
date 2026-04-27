@@ -41,7 +41,7 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
 
         async with httpx.AsyncClient(timeout=httpx.Timeout(120.0, connect=10.0)) as client:
             response = await client.post(
-                f"{self.base_url}/v1/embeddings",
+                f"{self.base_url}/embeddings",
                 json=payload,
                 headers=headers,
             )
