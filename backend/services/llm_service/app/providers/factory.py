@@ -4,8 +4,8 @@ from services.llm_service.app.providers.ollama_provider import OllamaProvider
 from services.llm_service.app.providers.openai_provider import OpenAIProvider
 
 
-def build_llm_provider() -> LLMProvider:
-    provider = settings.llm_provider.lower().strip()
+def build_llm_provider(provider_override: str | None = None) -> LLMProvider:
+    provider = (provider_override or settings.llm_provider).lower().strip()
 
     if provider == "ollama":
         return OllamaProvider(
@@ -17,9 +17,7 @@ def build_llm_provider() -> LLMProvider:
 
     if provider == "openai":
         if not settings.openai_api_key:
-            raise ValueError(
-                "OPENAI_API_KEY is required when LLM_PROVIDER=openai"
-            )
+            raise ValueError("OPENAI_API_KEY is required when LLM_PROVIDER=openai")
 
         return OpenAIProvider(
             base_url=settings.openai_base_url,
@@ -28,4 +26,4 @@ def build_llm_provider() -> LLMProvider:
             api_key=settings.openai_api_key,
         )
 
-    raise ValueError(f"Unsupported LLM provider: {settings.llm_provider}")
+    raise ValueError(f"Unsupported LLM provider: {provider}")

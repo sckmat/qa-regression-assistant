@@ -11,10 +11,6 @@ from services.user_service.app.models.base import Base
 
 
 class RegressionRun(Base):
-    """
-    Таблица запусков анализа регресса.
-    """
-
     __tablename__ = "regression_runs"
     __table_args__ = {"schema": settings.user_service_db_schema}
 
@@ -46,7 +42,9 @@ class RegressionRun(Base):
         nullable=False,
     )
 
-    project: Mapped["Project"] = relationship(back_populates="regression_runs")
+    project: Mapped["Project"] = relationship(
+        back_populates="regression_runs"
+    )
 
     candidates: Mapped[list["RegressionRunCandidate"]] = relationship(
         back_populates="regression_run",

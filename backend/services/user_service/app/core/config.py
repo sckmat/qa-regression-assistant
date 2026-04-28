@@ -17,5 +17,8 @@ class UserServiceSettings(BaseAppSettings):
     # LLM service
     llm_service_base_url: str = "http://127.0.0.1:8002"
 
+    openai_enabled: bool = True
+    ollama_enabled: bool = False
+    default_llm_provider: str = "openai"
 
 settings = UserServiceSettings()

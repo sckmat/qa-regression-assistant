@@ -46,3 +46,18 @@ class AuthService:
         refresh_token = create_refresh_token({"sub": str(user.id)})
 
         return user, access_token, refresh_token
+
+    async def refresh(self, refresh_token: str) -> str:
+        payload = self._decode_token(refresh_token)
+
+        if payload.get("type") != "refresh":
+            raise Exception("Invalid token")
+
+        user_id = payload.get("sub")
+
+        user = await self.user_repository.get_by_id(user_id)
+
+        if not user:
+            raise Exception("User not found")
+
+        return self._create_access_token(user.id)

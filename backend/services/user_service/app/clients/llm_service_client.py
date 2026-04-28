@@ -19,6 +19,7 @@ class LLMRerankCandidateRequest(BaseModel):
 class LLMRerankRequest(BaseModel):
     change_summary: str
     top_n: int
+    provider: str  # 👈 ВАЖНО: добавили provider
     candidates: list[LLMRerankCandidateRequest]
 
 
@@ -48,10 +49,13 @@ class LLMServiceClient:
         change_summary: str,
         candidates: list[RetrievalCandidate],
         top_n: int,
+        provider: str,  # 👈 новый параметр
     ) -> list[RetrievalCandidate]:
+
         request_payload = LLMRerankRequest(
             change_summary=change_summary,
             top_n=top_n,
+            provider=provider,
             candidates=[
                 LLMRerankCandidateRequest(
                     test_case_id=item.source_test_case_id,
@@ -67,10 +71,9 @@ class LLMServiceClient:
             url=f"{self.base_url}/api/v1/rerank",
             payload=request_payload.model_dump(),
         )
+
         parsed = LLMRerankResponse.model_validate(data)
 
-        # Сопоставляем ответ LLM с исходными retrieval-кандидатами,
-        # чтобы не потерять title/raw_text.
         original_map = {
             candidate.source_test_case_id: candidate
             for candidate in candidates
@@ -114,27 +117,26 @@ class LLMServiceClient:
         except httpx.ConnectError as exc:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=f"Cannot connect to llm_service: {exc}",
+                detail=f"Не удалось подключиться к llm_service: {exc}",
             ) from exc
 
         except httpx.HTTPStatusError as exc:
-            response_text = exc.response.text
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
                 detail=(
-                    "llm_service returned an error. "
-                    f"Status={exc.response.status_code}, body={response_text}"
+                    "llm_service вернул ошибку. "
+                    f"Status={exc.response.status_code}, body={exc.response.text}"
                 ),
             ) from exc
 
         except ValidationError as exc:
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=f"Invalid response format from llm_service: {exc}",
+                detail=f"Некорректный формат ответа llm_service: {exc}",
             ) from exc
 
         except httpx.RequestError as exc:
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=f"Request to llm_service failed: {exc}",
+                detail=f"Ошибка запроса к llm_service: {exc}",
             ) from exc
