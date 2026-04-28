@@ -49,13 +49,9 @@ class RegressionRunService:
         self,
         project_id: int,
         payload: RegressionRunCreate,
+        user_id: int,
     ) -> RegressionRunDetailRead:
-        project = await self.project_repository.get_by_id(project_id)
-        if project is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Project with id={project_id} not found.",
-            )
+        project = await self._ensure_project_access(project_id, user_id)
 
         candidates = await self._get_candidates(
             project=project,
@@ -71,25 +67,20 @@ class RegressionRunService:
 
         candidates_payload = self._build_candidates_payload(candidates)
 
-        try:
-            run = await self.regression_run_repository.create(
-                project_id=project_id,
-                change_summary=payload.change_summary,
-                status="completed",
-                result_summary=result_summary,
-            )
+        run = await self.regression_run_repository.create(
+            project_id=project_id,
+            change_summary=payload.change_summary,
+            status="completed",
+            result_summary=result_summary,
+        )
 
-            await self.regression_run_candidate_repository.create_many(
-                regression_run_id=run.id,
-                candidates_payload=candidates_payload,
-            )
+        await self.regression_run_candidate_repository.create_many(
+            regression_run_id=run.id,
+            candidates_payload=candidates_payload,
+        )
 
-            await self.session.commit()
-            await self.session.refresh(run)
-
-        except Exception:
-            await self.session.rollback()
-            raise
+        await self.session.commit()
+        await self.session.refresh(run)
 
         saved_candidates = await self.regression_run_candidate_repository.list_by_run_id(
             run.id
@@ -97,31 +88,45 @@ class RegressionRunService:
 
         return self._to_detail_response(run, saved_candidates)
 
-    async def list_runs(self, project_id: int) -> list[RegressionRun]:
-        project = await self.project_repository.get_by_id(project_id)
-
-        if project is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Project with id={project_id} not found.",
-            )
+    async def list_runs(
+        self,
+        project_id: int,
+        user_id: int,
+    ) -> list[RegressionRun]:
+        await self._ensure_project_access(project_id, user_id)
 
         return await self.regression_run_repository.list_by_project_id(project_id)
 
-    async def get_run(self, run_id: int) -> RegressionRunDetailRead:
+    async def get_run(
+        self,
+        run_id: int,
+        user_id: int,
+    ) -> RegressionRunDetailRead:
         run = await self.regression_run_repository.get_by_id(run_id)
 
         if run is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Regression run with id={run_id} not found.",
-            )
+            raise HTTPException(404, "Run not found")
+
+        # 🔥 ВАЖНО: проверка через проект
+        await self._ensure_project_access(run.project_id, user_id)
 
         candidates = await self.regression_run_candidate_repository.list_by_run_id(
             run.id
         )
 
         return self._to_detail_response(run, candidates)
+
+    async def _ensure_project_access(self, project_id: int, user_id: int):
+        project = await self.project_repository.get_by_id(project_id)
+
+        if project is None:
+            raise HTTPException(404, "Project not found")
+
+        if project.owner_user_id != user_id:
+            raise HTTPException(403, "Access denied")
+
+        return project
+
 
     async def _get_candidates(
         self,
@@ -131,7 +136,6 @@ class RegressionRunService:
         search_mode: str,
     ) -> list[RetrievalCandidate]:
 
-        # ===== LEXICAL =====
         if search_mode == "lexical":
             return await self.data_service_client.search_test_cases(
                 project_id=project.id,
@@ -139,33 +143,23 @@ class RegressionRunService:
                 limit=limit,
             )
 
-        # ===== SEMANTIC =====
         if search_mode == "semantic":
-            pref_repo = UserPreferenceRepository(self.session)
-            pref = await pref_repo.get_or_create(project.owner_user_id)
-
-            capabilities = CapabilitiesService().get_capabilities()
-
-            enabled_map = {
-                p["code"]: p["enabled"] for p in capabilities["llm_providers"]
-            }
-
-            preferred = pref.preferred_llm_provider
-
-            if not enabled_map.get(preferred):
-                provider = capabilities["default_llm_provider"]
-            else:
-                provider = preferred
-
             return await self.data_service_client.semantic_search_test_cases(
                 project_id=project.id,
                 query=query,
                 limit=limit,
-                embedding_provider=provider,  # 🔥
             )
 
-        # ===== SEMANTIC + LLM =====
         if search_mode == "semantic_llm":
+            semantic_candidates = await self.data_service_client.semantic_search_test_cases(
+                project_id=project.id,
+                query=query,
+                limit=limit,
+            )
+
+            if not semantic_candidates:
+                return []
+
             pref_repo = UserPreferenceRepository(self.session)
             pref = await pref_repo.get_or_create(project.owner_user_id)
 
@@ -181,16 +175,6 @@ class RegressionRunService:
                 provider = capabilities["default_llm_provider"]
             else:
                 provider = preferred
-
-            semantic_candidates = await self.data_service_client.semantic_search_test_cases(
-                project_id=project.id,
-                query=query,
-                limit=limit,
-                embedding_provider=provider,
-            )
-
-            if not semantic_candidates:
-                return []
 
             return await self.llm_service_client.rerank_candidates(
                 change_summary=query,
@@ -199,35 +183,21 @@ class RegressionRunService:
                 provider=provider,
             )
 
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Unsupported search_mode: {search_mode}",
-        )
+        raise HTTPException(400, f"Unsupported search_mode: {search_mode}")
 
-    def _build_candidates_payload(
-        self,
-        candidates: list[RetrievalCandidate],
-    ) -> list[dict]:
-        payload: list[dict] = []
+    def _build_candidates_payload(self, candidates):
+        return [
+            {
+                "source_test_case_id": c.source_test_case_id,
+                "title": c.title,
+                "relevance_score": c.normalized_score,
+                "matched_terms": c.matched_terms,
+                "explanation": c.explanation,
+            }
+            for c in candidates
+        ]
 
-        for candidate in candidates:
-            payload.append(
-                {
-                    "source_test_case_id": candidate.source_test_case_id,
-                    "title": candidate.title,
-                    "relevance_score": candidate.normalized_score,
-                    "matched_terms": candidate.matched_terms,
-                    "explanation": candidate.explanation,
-                }
-            )
-
-        return payload
-
-    def _to_detail_response(
-        self,
-        run: RegressionRun,
-        candidates: list[RegressionRunCandidate],
-    ) -> RegressionRunDetailRead:
+    def _to_detail_response(self, run, candidates):
         return RegressionRunDetailRead(
             id=run.id,
             project_id=run.project_id,
@@ -235,33 +205,11 @@ class RegressionRunService:
             status=run.status,
             result_summary=run.result_summary,
             created_at=run.created_at,
-            candidates=[candidate for candidate in candidates],
+            candidates=[c for c in candidates],
         )
 
-    def _build_result_summary(
-        self,
-        candidates: list[RetrievalCandidate],
-        search_mode: str,
-    ) -> str:
-        mode_label = self._get_search_mode_label(search_mode)
-
+    def _build_result_summary(self, candidates, search_mode):
         if not candidates:
             return "Анализ завершен. Подходящие тест-кейсы не найдены."
 
-        top_candidate = candidates[0]
-
-        return (
-            f"Анализ завершен. Найдено {len(candidates)} тест-кейсов.\n"
-            f"Режим: {mode_label}.\n"
-            f"Лучший кандидат: «{top_candidate.title}».\n"
-            f"Score: {top_candidate.normalized_score}"
-        )
-
-    def _get_search_mode_label(self, search_mode: str) -> str:
-        if search_mode == "lexical":
-            return "лексический"
-        if search_mode == "semantic":
-            return "семантический"
-        if search_mode == "semantic_llm":
-            return "семантический + LLM"
-        return search_mode
+        return f"Найдено {len(candidates)} тест-кейсов."

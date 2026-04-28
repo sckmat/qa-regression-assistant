@@ -13,6 +13,8 @@ from services.user_service.app.services.regression_run_service import (
     RegressionRunService,
 )
 
+from services.user_service.app.api.dependencies.current_user import get_current_user
+
 router = APIRouter(tags=["Regression Runs"])
 
 DbSession = Annotated[AsyncSession, Depends(get_db_session)]
@@ -27,13 +29,14 @@ async def create_regression_run(
     project_id: int,
     payload: RegressionRunCreate,
     session: DbSession,
+    current_user=Depends(get_current_user),
 ) -> RegressionRunDetailRead:
-    """
-    Создает новый запуск анализа регресса для проекта
-    и сразу возвращает найденных кандидатов.
-    """
     service = RegressionRunService(session)
-    return await service.create_run(project_id, payload)
+    return await service.create_run(
+        project_id,
+        payload,
+        current_user.id,
+    )
 
 
 @router.get(
@@ -43,12 +46,15 @@ async def create_regression_run(
 async def list_regression_runs(
     project_id: int,
     session: DbSession,
+    current_user=Depends(get_current_user),
 ) -> list[RegressionRunRead]:
-    """
-    Возвращает список запусков по проекту.
-    """
     service = RegressionRunService(session)
-    runs = await service.list_runs(project_id)
+
+    runs = await service.list_runs(
+        project_id,
+        current_user.id,
+    )
+
     return [RegressionRunRead.model_validate(run) for run in runs]
 
 
@@ -59,9 +65,11 @@ async def list_regression_runs(
 async def get_regression_run(
     run_id: int,
     session: DbSession,
+    current_user=Depends(get_current_user),
 ) -> RegressionRunDetailRead:
-    """
-    Возвращает один запуск анализа по id вместе с найденными кандидатами.
-    """
     service = RegressionRunService(session)
-    return await service.get_run(run_id)
+
+    return await service.get_run(
+        run_id,
+        current_user.id,
+    )
