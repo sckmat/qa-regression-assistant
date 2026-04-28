@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class ProjectCreate(BaseModel):
@@ -13,7 +13,7 @@ class ProjectCreate(BaseModel):
         ...,
         min_length=1,
         max_length=255,
-        description="Название проекта. Должно быть уникальным внутри user_service.",
+        description="Название проекта.",
     )
     description: Optional[str] = Field(
         default=None,
@@ -26,9 +26,9 @@ class ProjectRead(BaseModel):
     Схема ответа с данными проекта.
     """
 
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     name: str
     description: Optional[str]
     created_at: datetime
-
-    model_config = {"from_attributes": True}
