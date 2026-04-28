@@ -1,51 +1,31 @@
-import { zodResolver } from '@hookform/resolvers/zod'
+import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
-import { useNavigate } from 'react-router-dom'
 
-import { useCreateRegressionRunMutation } from '../../../entities/regression-run/api/useCreateRegressionRunMutation'
-import { uiText } from '../../../shared/constants/ui-text'
-import { getUserErrorMessage } from '../../../shared/lib/get-user-error-message'
-import { useToast } from '../../../shared/ui/toast/useToast'
-import {
-    startRegressionRunSchema,
-    type StartRegressionRunFormValues, type StartRegressionRunFormInput,
-} from '../model/startRegressionRunSchema'
+import { usePreferencesQuery } from '../../../entities/user/api/usePreferencesQuery'
+import { useCapabilitiesQuery } from '../../../entities/user/api/useCapabilitiesQuery'
 
-type StartRegressionRunFormProps = {
-    projectId: number
+type StartRegressionRunFormValues = {
+    change_summary: string
+    candidate_limit: number
+    search_mode: 'lexical' | 'semantic' | 'semantic_llm'
 }
 
-const modeOptions = [
-    {
-        value: 'lexical',
-        label: uiText.newRun.modes.lexical.label,
-        description: uiText.newRun.modes.lexical.description,
-    },
-    {
-        value: 'semantic',
-        label: uiText.newRun.modes.semantic.label,
-        description: uiText.newRun.modes.semantic.description,
-    },
-    {
-        value: 'semantic_llm',
-        label: uiText.newRun.modes.semanticLlm.label,
-        description: uiText.newRun.modes.semanticLlm.description,
-    },
-] as const
+type Props = {
+    onSubmit: (values: StartRegressionRunFormValues) => Promise<void>
+    isLoading?: boolean
+}
 
-export function StartRegressionRunForm({
-                                           projectId,
-                                       }: StartRegressionRunFormProps) {
-    const navigate = useNavigate()
-    const createRegressionRunMutation = useCreateRegressionRunMutation({ projectId })
-    const toast = useToast()
+export function StartRegressionRunForm({ onSubmit, isLoading }: Props) {
+    const preferencesQuery = usePreferencesQuery()
+    const capabilitiesQuery = useCapabilitiesQuery()
 
     const {
         register,
         handleSubmit,
+        setValue,
+        watch,
         formState: { errors },
-    } = useForm<StartRegressionRunFormInput, unknown, StartRegressionRunFormValues>({
-        resolver: zodResolver(startRegressionRunSchema),
+    } = useForm<StartRegressionRunFormValues>({
         defaultValues: {
             change_summary: '',
             candidate_limit: 5,
@@ -53,108 +33,88 @@ export function StartRegressionRunForm({
         },
     })
 
-    const onSubmit = handleSubmit(async (values) => {
-        try {
-            const createdRun = await createRegressionRunMutation.mutateAsync({
-                change_summary: values.change_summary.trim(),
-                candidate_limit: values.candidate_limit,
-                search_mode: values.search_mode,
-            })
-
-            toast.success(uiText.toasts.runStarted)
-            navigate(`/runs/${createdRun.id}`)
-        } catch (error) {
-            toast.error(getUserErrorMessage(error))
+    useEffect(() => {
+        if (preferencesQuery.data?.default_search_mode) {
+            setValue('search_mode', preferencesQuery.data.default_search_mode)
         }
+    }, [preferencesQuery.data?.default_search_mode, setValue])
+
+    const currentMode = watch('search_mode')
+
+    const isLlmAvailable = capabilitiesQuery.data?.llm_providers
+        ?.find((p) => p.code === 'openai')
+        ?.enabled ?? false
+
+    const submitHandler = handleSubmit(async (values) => {
+        await onSubmit(values)
     })
 
     return (
-        <div className="card">
-            <h3 className="section-title">{uiText.newRun.formTitle}</h3>
+        <form className="card project-form" onSubmit={submitHandler}>
+            <h3 className="section-title">Запуск анализа</h3>
 
-            <form className="project-form" onSubmit={onSubmit}>
-                <div className="field">
-                    <label className="label" htmlFor="change-summary">
-                        {uiText.newRun.changeSummaryLabel}
-                    </label>
+            {/* Описание изменений */}
+            <div className="field">
+                <label className="label">Описание изменений</label>
 
-                    <textarea
-                        id="change-summary"
-                        className="textarea textarea--large"
-                        rows={8}
-                        placeholder={uiText.newRun.changeSummaryPlaceholder}
-                        {...register('change_summary')}
-                    />
+                <textarea
+                    className="textarea"
+                    placeholder="Например: Изменен экран логина, добавлена валидация email..."
+                    {...register('change_summary', {
+                        required: 'Введите описание изменений',
+                    })}
+                />
 
-                    {errors.change_summary ? (
-                        <p className="error-text">{errors.change_summary.message}</p>
-                    ) : null}
-                </div>
+                {errors.change_summary && (
+                    <p className="error-text">{errors.change_summary.message}</p>
+                )}
+            </div>
 
-                <div className="form-grid">
-                    <div className="field">
-                        <label className="label" htmlFor="candidate-limit">
-                            {uiText.newRun.candidateLimitLabel}
-                        </label>
+            {/* Количество кандидатов */}
+            <div className="field">
+                <label className="label">Количество кандидатов</label>
 
-                        <input
-                            id="candidate-limit"
-                            className="input"
-                            type="number"
-                            min={1}
-                            max={20}
-                            {...register('candidate_limit')}
-                        />
+                <input
+                    type="number"
+                    className="input"
+                    {...register('candidate_limit', {
+                        valueAsNumber: true,
+                        min: 1,
+                        max: 20,
+                    })}
+                />
+            </div>
 
-                        {errors.candidate_limit ? (
-                            <p className="error-text">{errors.candidate_limit.message}</p>
-                        ) : null}
-                    </div>
+            {/* Режим */}
+            <div className="field">
+                <label className="label">Режим анализа</label>
 
-                    <div className="field">
-                        <label className="label" htmlFor="search-mode">
-                            {uiText.newRun.searchModeLabel}
-                        </label>
+                <select className="input" {...register('search_mode')}>
+                    <option value="lexical">Лексический</option>
+                    <option value="semantic">Семантический</option>
+                    <option value="semantic_llm" disabled={!isLlmAvailable}>
+                        Семантический + модель {!isLlmAvailable ? '(недоступно)' : ''}
+                    </option>
+                </select>
 
-                        <select
-                            id="search-mode"
-                            className="input"
-                            {...register('search_mode')}
-                        >
-                            {modeOptions.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                    {option.label}
-                                </option>
-                            ))}
-                        </select>
+                {/* 🔥 Подсказки UX */}
+                {currentMode === 'semantic_llm' && (
+                    <p className="hint">
+                        Будет выполнен семантический поиск с дополнительной фильтрацией через модель.
+                    </p>
+                )}
 
-                        {errors.search_mode ? (
-                            <p className="error-text">{errors.search_mode.message}</p>
-                        ) : null}
-                    </div>
-                </div>
+                {currentMode === 'semantic_llm' && !isLlmAvailable && (
+                    <p className="error-text">
+                        Модель недоступна. Будет использован только семантический поиск.
+                    </p>
+                )}
+            </div>
 
-                <div className="mode-hints">
-                    {modeOptions.map((option) => (
-                        <div key={option.value} className="mode-hint">
-                            <p className="mode-hint__title">{option.label}</p>
-                            <p className="mode-hint__description">{option.description}</p>
-                        </div>
-                    ))}
-                </div>
-
-                <div className="form-actions">
-                    <button
-                        className="button"
-                        type="submit"
-                        disabled={createRegressionRunMutation.isPending}
-                    >
-                        {createRegressionRunMutation.isPending
-                            ? uiText.newRun.submittingButton
-                            : uiText.newRun.submitButton}
-                    </button>
-                </div>
-            </form>
-        </div>
+            {/* Кнопка */}
+            <button className="button" disabled={isLoading}>
+                {isLoading ? 'Запуск...' : 'Запустить анализ'}
+            </button>
+        </form>
     )
 }

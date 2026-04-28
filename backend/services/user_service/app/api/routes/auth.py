@@ -35,7 +35,7 @@ async def login(
 ):
     service = AuthService(session)
 
-    user, access_token, _ = await service.login(
+    user, access_token = await service.login(
         payload.email,
         payload.password,
     )

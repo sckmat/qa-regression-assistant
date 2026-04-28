@@ -14,6 +14,6 @@ router = APIRouter(tags=["Rerank"])
 async def rerank_candidates(payload: RerankRequest):
     provider = build_llm_provider(payload.provider)
 
-    service = RerankService(provider)
+    service = RerankService()
 
     return await service.rerank(payload)

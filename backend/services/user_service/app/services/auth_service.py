@@ -5,7 +5,6 @@ from services.user_service.app.core.security import (
     hash_password,
     verify_password,
     create_access_token,
-    create_refresh_token,
 )
 from services.user_service.app.models.user import User
 from services.user_service.app.repositories.user_repository import UserRepository
@@ -43,9 +42,8 @@ class AuthService:
             )
 
         access_token = create_access_token({"sub": str(user.id)})
-        refresh_token = create_refresh_token({"sub": str(user.id)})
 
-        return user, access_token, refresh_token
+        return user, access_token
 
     async def refresh(self, refresh_token: str) -> str:
         payload = self._decode_token(refresh_token)

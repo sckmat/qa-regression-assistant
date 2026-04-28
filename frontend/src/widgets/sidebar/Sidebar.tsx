@@ -9,6 +9,15 @@ export function Sidebar() {
 
             <nav className="sidebar__nav">
                 <NavLink
+                    to="/profile"
+                    className={({ isActive }) =>
+                        isActive ? 'sidebar__link sidebar__link--active' : 'sidebar__link'
+                    }
+                >
+                    Профиль
+                </NavLink>
+
+                <NavLink
                     to="/projects"
                     className={({ isActive }) =>
                         isActive ? 'sidebar__link sidebar__link--active' : 'sidebar__link'

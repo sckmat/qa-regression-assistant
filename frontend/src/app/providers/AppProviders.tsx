@@ -1,5 +1,7 @@
-import {type PropsWithChildren, useState } from 'react'
+import { type PropsWithChildren, useState } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+
+import { ToastViewport } from '../../shared/ui/toast/ToastViewport'
 
 export function AppProviders({ children }: PropsWithChildren) {
     const [queryClient] = useState(
@@ -17,5 +19,10 @@ export function AppProviders({ children }: PropsWithChildren) {
             }),
     )
 
-    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    return (
+        <QueryClientProvider client={queryClient}>
+            {children}
+            <ToastViewport />
+        </QueryClientProvider>
+    )
 }

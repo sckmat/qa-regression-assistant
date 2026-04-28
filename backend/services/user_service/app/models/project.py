@@ -14,6 +14,7 @@ class Project(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
 
     name: Mapped[str] = mapped_column(String(255))
+    description: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     owner_user_id: Mapped[int] = mapped_column(
         ForeignKey(f"{settings.user_service_db_schema}.users.id"),

@@ -19,6 +19,7 @@ class ProjectService:
     async def create_project(self, payload: ProjectCreate, user_id: int) -> Project:
         project = Project(
             name=payload.name,
+            description=payload.description,
             owner_user_id=user_id,
         )
 
