@@ -1,42 +1,40 @@
 from services.llm_service.app.core.config import settings
 from services.llm_service.app.providers.factory import build_llm_provider
 from services.llm_service.app.schemas.rerank import (
-    RerankCandidateInput,
     RerankRequest,
     RerankResponse,
 )
 
 
 class RerankService:
-    """
-    Сервис rerank через выбранный LLM provider.
-    """
-
-    def __init__(self):
-        self.provider = build_llm_provider()
-
     async def rerank(
         self,
         payload: RerankRequest,
     ) -> RerankResponse:
-        llm_output = await self.provider.rerank(
+
+        provider_name = payload.provider or settings.llm_provider
+
+        provider = build_llm_provider(provider_name)
+
+        llm_output = await provider.rerank(
             change_summary=payload.change_summary,
             candidates=payload.candidates,
             top_n=payload.top_n,
         )
 
-        # На всякий случай:
-        # - оставляем только релевантные
-        # - сортируем по llm_score по убыванию
-        # - обрезаем до top_n
         filtered_items = [
             item for item in llm_output.items if item.is_relevant
         ]
         filtered_items.sort(key=lambda item: item.llm_score, reverse=True)
         filtered_items = filtered_items[: payload.top_n]
 
+        if provider_name == "ollama":
+            model = settings.ollama_llm_model
+        else:
+            model = settings.openai_llm_model
+
         return RerankResponse(
-            provider=settings.llm_provider,
-            model=settings.llm_model,
+            provider=provider_name,
+            model=model,
             items=filtered_items,
         )

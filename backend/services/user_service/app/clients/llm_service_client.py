@@ -49,7 +49,7 @@ class LLMServiceClient:
         change_summary: str,
         candidates: list[RetrievalCandidate],
         top_n: int,
-        provider: str,  # 👈 новый параметр
+        provider: str,
     ) -> list[RetrievalCandidate]:
 
         request_payload = LLMRerankRequest(

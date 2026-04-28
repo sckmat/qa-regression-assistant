@@ -89,15 +89,18 @@ class DataServiceClient:
         ]
 
     async def semantic_search_test_cases(
-        self,
-        project_id: int,
-        query: str,
-        limit: int,
+            self,
+            project_id: int,
+            query: str,
+            limit: int,
+            embedding_provider: str | None = None,
     ) -> list[RetrievalCandidate]:
         url = f"{self.base_url}/api/v1/projects/{project_id}/test-cases/semantic-search"
+
         payload = {
             "query": query,
             "limit": limit,
+            "embedding_provider": embedding_provider,
         }
 
         data = await self._request_json(
@@ -105,6 +108,7 @@ class DataServiceClient:
             url=url,
             json_payload=payload,
         )
+
         parsed = DataServiceSemanticResponse.model_validate(data)
 
         return [
@@ -179,13 +183,20 @@ class DataServiceClient:
         return data
 
     async def reindex_test_cases(
-        self,
-        project_id: int,
+            self,
+            project_id: int,
+            embedding_provider: str | None = None,
     ) -> dict[str, Any]:
         url = f"{self.base_url}/api/v1/projects/{project_id}/test-cases/reindex"
+
+        payload = {
+            "embedding_provider": embedding_provider,
+        }
+
         data = await self._request_json(
             method="POST",
             url=url,
+            json_payload=payload,
         )
 
         if not isinstance(data, dict):

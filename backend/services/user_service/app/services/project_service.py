@@ -7,7 +7,6 @@ from services.user_service.app.models.project import Project
 from services.user_service.app.repositories.project_repository import ProjectRepository
 from services.user_service.app.schemas.project import ProjectCreate
 
-
 class ProjectService:
     def __init__(self, session: AsyncSession):
         self.session = session

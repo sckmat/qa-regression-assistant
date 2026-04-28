@@ -11,18 +11,19 @@ class DataServiceSettings(BaseAppSettings):
     data_service_db_echo: bool = False
     data_service_db_schema: str = "data_service"
 
-    # Настройки embeddings
-    embedding_provider: str = "ollama"   # ollama | openai
-    embedding_model: str = "nomic-embed-text-v2-moe"
+    # ===== Embeddings =====
+    default_embedding_provider: str = "openai"
     embedding_dim: int = 768
     embedding_batch_size: int = 16
 
-    # Ollama
-    ollama_embedding_base_url: str = "http://127.0.0.1:11434"
-
     # OpenAI
-    openai_base_url: str = "https://api.openai.com"
+    openai_base_url: str
     openai_api_key: str | None = None
+    openai_embedding_model: str = "text-embedding-3-small"
+
+    # Ollama
+    ollama_embedding_base_url: str
+    ollama_embedding_model: str = "nomic-embed-text"
 
 
 settings = DataServiceSettings()

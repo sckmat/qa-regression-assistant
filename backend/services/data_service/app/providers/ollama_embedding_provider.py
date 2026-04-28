@@ -5,10 +5,7 @@ from services.data_service.app.providers.embedding_provider import EmbeddingProv
 
 class OllamaEmbeddingProvider(EmbeddingProvider):
     """
-    Провайдер embeddings через локальный Ollama.
-
-    Использует:
-    POST {OLLAMA_BASE_URL}/api/embed
+    Провайдер embeddings через Ollama.
     """
 
     def __init__(
@@ -21,35 +18,34 @@ class OllamaEmbeddingProvider(EmbeddingProvider):
         self.model = model
         self.dimensions = dimensions
 
-    async def embed_texts(self, texts: list[str]) -> list[list[float]]:
-        if not texts:
-            return []
+    async def embed_texts(
+        self,
+        texts: list[str],
+    ) -> list[list[float]]:
+        embeddings: list[list[float]] = []
 
-        payload = {
-            "model": self.model,
-            "input": texts,
-            "truncate": True,
-            "dimensions": self.dimensions,
-        }
-
-        async with httpx.AsyncClient(timeout=httpx.Timeout(120.0, connect=10.0)) as client:
-            response = await client.post(f"{self.base_url}/api/embed", json=payload)
-            response.raise_for_status()
-
-        data = response.json()
-        embeddings = data.get("embeddings", [])
-
-        if len(embeddings) != len(texts):
-            raise ValueError(
-                "Ollama returned unexpected number of embeddings: "
-                f"expected={len(texts)}, actual={len(embeddings)}"
-            )
-
-        for embedding in embeddings:
-            if len(embedding) != self.dimensions:
-                raise ValueError(
-                    "Ollama returned embedding with unexpected dimension: "
-                    f"expected={self.dimensions}, actual={len(embedding)}"
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            for text in texts:
+                response = await client.post(
+                    f"{self.base_url}/api/embeddings",
+                    json={
+                        "model": self.model,
+                        "prompt": text,
+                    },
                 )
+
+                if response.is_error:
+                    raise RuntimeError(
+                        f"Ollama embedding error: status={response.status_code}, body={response.text}"
+                    )
+
+                data = response.json()
+
+                vector = data.get("embedding")
+
+                if not vector:
+                    raise ValueError(f"Invalid Ollama response: {data}")
+
+                embeddings.append(vector)
 
         return embeddings

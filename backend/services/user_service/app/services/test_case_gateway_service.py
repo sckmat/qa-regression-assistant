@@ -9,6 +9,9 @@ from services.user_service.app.core.config import settings
 from services.user_service.app.repositories.project_repository import (
     ProjectRepository,
 )
+from services.user_service.app.repositories.user_preference_repository import (
+    UserPreferenceRepository,
+)
 
 
 class TestCaseGatewayService:
@@ -27,9 +30,9 @@ class TestCaseGatewayService:
         return await self.data_service_client.get_test_case(test_case_id)
 
     async def import_test_cases_file(
-            self,
-            project_id: int,
-            file: UploadFile,
+        self,
+        project_id: int,
+        file: UploadFile,
     ) -> dict[str, Any]:
         await self._ensure_project_exists(project_id)
 
@@ -86,14 +89,27 @@ class TestCaseGatewayService:
             payload=parsed_payload,
         )
 
+        pref_repo = UserPreferenceRepository(self.session)
+        project = await self.project_repository.get_by_id(project_id)
+        pref = await pref_repo.get_or_create(project.owner_user_id)
+
+        provider = pref.preferred_llm_provider
+
+        print(f"[IMPORT+REINDEX] provider={provider}")
+
         try:
-            reindex_result = await self.data_service_client.reindex_test_cases(project_id)
+            reindex_result = await self.data_service_client.reindex_test_cases(
+                project_id,
+                embedding_provider=provider,
+            )
+
             return {
                 "status": "completed",
                 "message": "Тест-кейсы успешно загружены и переиндексированы.",
                 "import_result": import_result,
                 "reindex_result": reindex_result,
             }
+
         except HTTPException as exc:
             return {
                 "status": "partial_success",
@@ -104,7 +120,19 @@ class TestCaseGatewayService:
 
     async def reindex_test_cases(self, project_id: int) -> dict[str, Any]:
         await self._ensure_project_exists(project_id)
-        return await self.data_service_client.reindex_test_cases(project_id)
+
+        pref_repo = UserPreferenceRepository(self.session)
+        project = await self.project_repository.get_by_id(project_id)
+        pref = await pref_repo.get_or_create(project.owner_user_id)
+
+        provider = pref.preferred_llm_provider
+
+        print(f"[REINDEX] provider={provider}")
+
+        return await self.data_service_client.reindex_test_cases(
+            project_id,
+            embedding_provider=provider,  # 🔥
+        )
 
     async def _ensure_project_exists(self, project_id: int) -> None:
         project = await self.project_repository.get_by_id(project_id)

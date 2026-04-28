@@ -34,6 +34,8 @@ class OpenAICompatibleProvider(LLMProvider):
         candidates: list[RerankCandidateInput],
         top_n: int,
     ) -> LLMStructuredRerankOutput:
+        print(f"[LLM] Request to: {self.base_url}")
+        print(f"[LLM] Model: {self.model}")
         candidates_payload = [
             {
                 "test_case_id": candidate.test_case_id,

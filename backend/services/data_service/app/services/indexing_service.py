@@ -11,21 +11,13 @@ from services.data_service.app.services.embedding_service import EmbeddingServic
 
 
 class IndexingService:
-    """
-    Сервис переиндексации тест-кейсов проекта.
-
-    На этом шаге:
-    - берем test_cases проекта;
-    - строим embeddings для raw_text;
-    - сохраняем embeddings в отдельную таблицу.
-    """
-
     def __init__(self, session: AsyncSession):
         self.session = session
         self.embedding_service = EmbeddingService()
         self.embedding_repository = TestCaseEmbeddingRepository(session)
 
-    async def reindex_project(self, project_id: int) -> ProjectReindexResponse:
+    async def reindex_project(self, project_id: int, payload) -> ProjectReindexResponse:
+
         result = await self.session.execute(
             select(TestCase)
             .where(TestCase.project_id == project_id)
@@ -33,11 +25,18 @@ class IndexingService:
         )
         test_cases = list(result.scalars().all())
 
+        provider = payload.embedding_provider or settings.default_embedding_provider
+
+        if provider == "ollama":
+            model = settings.ollama_embedding_model
+        else:
+            model = settings.openai_embedding_model
+
         if not test_cases:
             return ProjectReindexResponse(
                 project_id=project_id,
-                embedding_provider=settings.embedding_provider,
-                embedding_model=settings.embedding_model,
+                embedding_provider=provider,
+                embedding_model=model,
                 embedding_dim=settings.embedding_dim,
                 processed_test_cases=0,
                 indexed_test_cases=0,
@@ -48,15 +47,21 @@ class IndexingService:
 
         try:
             for batch in self._batched(test_cases, settings.embedding_batch_size):
-                batch_texts = [self._build_embedding_text(test_case) for test_case in batch]
-                embeddings = await self.embedding_service.embed_texts(batch_texts)
+                batch_texts = [
+                    self._build_embedding_text(test_case) for test_case in batch
+                ]
+
+                embeddings = await self.embedding_service.embed_texts(
+                    batch_texts,
+                    provider_name=provider,  # 🔥
+                )
 
                 for test_case, embedding in zip(batch, embeddings):
                     await self.embedding_repository.upsert(
                         test_case_id=test_case.id,
                         embedding=embedding,
-                        embedding_provider=settings.embedding_provider,
-                        embedding_model=settings.embedding_model,
+                        embedding_provider=provider,
+                        embedding_model=model,
                     )
                     indexed_count += 1
 
@@ -68,8 +73,8 @@ class IndexingService:
 
         return ProjectReindexResponse(
             project_id=project_id,
-            embedding_provider=settings.embedding_provider,
-            embedding_model=settings.embedding_model,
+            embedding_provider=provider,
+            embedding_model=model,
             embedding_dim=settings.embedding_dim,
             processed_test_cases=len(test_cases),
             indexed_test_cases=indexed_count,
@@ -77,11 +82,6 @@ class IndexingService:
         )
 
     def _build_embedding_text(self, test_case: TestCase) -> str:
-        """
-        На MVP используем raw_text как основной документ для embeddings.
-
-        Если raw_text пустой, собираем текст заново из полей кейса.
-        """
         if test_case.raw_text and test_case.raw_text.strip():
             return test_case.raw_text.strip()
 
@@ -93,11 +93,8 @@ class IndexingService:
         ]
         return "\n".join(part for part in parts if part).strip()
 
-    def _batched(self, items: list[TestCase], batch_size: int) -> list[list[TestCase]]:
-        """
-        Простая разбивка списка на батчи.
-        """
+    def _batched(self, items: list[TestCase], batch_size: int):
         return [
-            items[index:index + batch_size]
-            for index in range(0, len(items), batch_size)
+            items[i : i + batch_size]
+            for i in range(0, len(items), batch_size)
         ]

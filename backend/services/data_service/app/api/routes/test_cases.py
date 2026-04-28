@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, status
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.data_service.app.core.db import get_db_session
@@ -22,6 +23,8 @@ from services.data_service.app.services.semantic_search_service import (
 
 router = APIRouter(tags=["Test Cases"])
 
+class ReindexRequest(BaseModel):
+    embedding_provider: str | None = None
 
 @router.post(
     "/projects/{project_id}/test-cases/import",
@@ -110,14 +113,11 @@ async def search_test_cases(
 )
 async def reindex_project_test_cases(
     project_id: int,
+    payload: ReindexRequest,
     session: AsyncSession = Depends(get_db_session),
 ) -> ProjectReindexResponse:
-    """
-    Переиндексирует все тест-кейсы проекта:
-    строит embeddings и сохраняет их в БД.
-    """
     service = IndexingService(session)
-    return await service.reindex_project(project_id)
+    return await service.reindex_project(project_id, payload)
 
 @router.post(
     "/projects/{project_id}/test-cases/semantic-search",

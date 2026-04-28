@@ -9,19 +9,10 @@ from services.data_service.app.models.base import Base
 
 
 class TestCaseEmbedding(Base):
-    """
-    Таблица embeddings для тест-кейсов.
-
-    Храним отдельно от test_cases, чтобы:
-    - можно было переиндексировать кейсы;
-    - знать, какой моделью и каким провайдером создан embedding;
-    - не смешивать retrieval-данные с бизнес-данными тест-кейса.
-    """
-
     __tablename__ = "test_case_embeddings"
     __table_args__ = (
         UniqueConstraint("test_case_id", name="uq_test_case_embeddings_test_case_id"),
-        {"schema": settings.data_service_db_schema},
+        {"schema": settings.data_service_db_schema},  # 🔥 ключевая строка
     )
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)

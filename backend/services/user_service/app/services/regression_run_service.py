@@ -29,15 +29,6 @@ from services.user_service.app.services.capabilities_service import Capabilities
 
 
 class RegressionRunService:
-    """
-    Service-слой для запусков анализа регресса.
-
-    Поддерживаемые режимы:
-    - lexical
-    - semantic
-    - semantic_llm
-    """
-
     def __init__(self, session: AsyncSession):
         self.session = session
         self.project_repository = ProjectRepository(session)
@@ -140,6 +131,7 @@ class RegressionRunService:
         search_mode: str,
     ) -> list[RetrievalCandidate]:
 
+        # ===== LEXICAL =====
         if search_mode == "lexical":
             return await self.data_service_client.search_test_cases(
                 project_id=project.id,
@@ -147,28 +139,11 @@ class RegressionRunService:
                 limit=limit,
             )
 
+        # ===== SEMANTIC =====
         if search_mode == "semantic":
-            return await self.data_service_client.semantic_search_test_cases(
-                project_id=project.id,
-                query=query,
-                limit=limit,
-            )
-
-        if search_mode == "semantic_llm":
-            semantic_candidates = await self.data_service_client.semantic_search_test_cases(
-                project_id=project.id,
-                query=query,
-                limit=limit,
-            )
-
-            if not semantic_candidates:
-                return []
-
-            # 👇 1. Получаем preferences пользователя
             pref_repo = UserPreferenceRepository(self.session)
             pref = await pref_repo.get_or_create(project.owner_user_id)
 
-            # 👇 2. Получаем capabilities системы
             capabilities = CapabilitiesService().get_capabilities()
 
             enabled_map = {
@@ -177,13 +152,46 @@ class RegressionRunService:
 
             preferred = pref.preferred_llm_provider
 
-            # 👇 3. fallback если провайдер недоступен
             if not enabled_map.get(preferred):
                 provider = capabilities["default_llm_provider"]
             else:
                 provider = preferred
 
-            # 👇 4. вызов llm_service
+            return await self.data_service_client.semantic_search_test_cases(
+                project_id=project.id,
+                query=query,
+                limit=limit,
+                embedding_provider=provider,  # 🔥
+            )
+
+        # ===== SEMANTIC + LLM =====
+        if search_mode == "semantic_llm":
+            pref_repo = UserPreferenceRepository(self.session)
+            pref = await pref_repo.get_or_create(project.owner_user_id)
+
+            capabilities = CapabilitiesService().get_capabilities()
+
+            enabled_map = {
+                p["code"]: p["enabled"] for p in capabilities["llm_providers"]
+            }
+
+            preferred = pref.preferred_llm_provider
+
+            if not enabled_map.get(preferred):
+                provider = capabilities["default_llm_provider"]
+            else:
+                provider = preferred
+
+            semantic_candidates = await self.data_service_client.semantic_search_test_cases(
+                project_id=project.id,
+                query=query,
+                limit=limit,
+                embedding_provider=provider,
+            )
+
+            if not semantic_candidates:
+                return []
+
             return await self.llm_service_client.rerank_candidates(
                 change_summary=query,
                 candidates=semantic_candidates,

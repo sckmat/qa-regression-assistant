@@ -1,29 +1,20 @@
 from services.llm_service.app.core.config import settings
-from services.llm_service.app.providers.llm_provider import LLMProvider
-from services.llm_service.app.providers.ollama_provider import OllamaProvider
-from services.llm_service.app.providers.openai_provider import OpenAIProvider
+from services.llm_service.app.providers.openai_compatible_provider import (
+    OpenAICompatibleProvider,
+)
 
 
-def build_llm_provider(provider_override: str | None = None) -> LLMProvider:
-    provider = (provider_override or settings.llm_provider).lower().strip()
-
-    if provider == "ollama":
-        return OllamaProvider(
+def build_llm_provider(provider_name: str):
+    if provider_name == "ollama":
+        return OpenAICompatibleProvider(
             base_url=settings.ollama_llm_base_url,
-            model=settings.llm_model,
+            model=settings.ollama_llm_model,
             timeout_seconds=settings.llm_timeout_seconds,
-            api_key=None,
         )
 
-    if provider == "openai":
-        if not settings.openai_api_key:
-            raise ValueError("OPENAI_API_KEY is required when LLM_PROVIDER=openai")
-
-        return OpenAIProvider(
-            base_url=settings.openai_base_url,
-            model=settings.llm_model,
-            timeout_seconds=settings.llm_timeout_seconds,
-            api_key=settings.openai_api_key,
-        )
-
-    raise ValueError(f"Unsupported LLM provider: {provider}")
+    return OpenAICompatibleProvider(
+        base_url=settings.openai_base_url,
+        model=settings.openai_llm_model,
+        timeout_seconds=settings.llm_timeout_seconds,
+        api_key=settings.openai_api_key,
+    )
