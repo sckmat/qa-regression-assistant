@@ -16,7 +16,6 @@ class DataServiceTestCaseRead(BaseModel):
     raw_text: str
 
 
-# ===== Lexical search =====
 
 class DataServiceSearchCandidate(BaseModel):
     test_case: DataServiceTestCaseRead
@@ -30,7 +29,6 @@ class DataServiceSearchResponse(BaseModel):
     candidates: list[DataServiceSearchCandidate]
 
 
-# ===== Semantic search =====
 
 class DataServiceSemanticCandidate(BaseModel):
     test_case: DataServiceTestCaseRead
@@ -47,14 +45,10 @@ class DataServiceSemanticResponse(BaseModel):
 
 
 class DataServiceClient:
-    """
-    HTTP-клиент для вызова data_service.
-    """
 
     def __init__(self, base_url: str):
         self.base_url = base_url.rstrip("/")
 
-    # ===== Retrieval =====
 
     async def search_test_cases(
         self,
@@ -124,7 +118,6 @@ class DataServiceClient:
             for item in parsed.candidates
         ]
 
-    # ===== Test cases gateway methods =====
 
     async def list_test_cases(
         self,

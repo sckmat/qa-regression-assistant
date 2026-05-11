@@ -47,7 +47,6 @@ export function ProfilePage() {
             <div className="card profile-card">
                 <h2 className="section-title">Настройки</h2>
 
-                {/* Режим анализа */}
                 <div className="field">
                     <label className="label">
                         {uiText.newRun.searchModeLabel}
@@ -78,7 +77,6 @@ export function ProfilePage() {
                     </div>
                 </div>
 
-                {/* Провайдер */}
                 <div className="field">
                     <label className="label">Провайдер модели</label>
 
@@ -114,7 +112,6 @@ export function ProfilePage() {
                     </div>
                 </div>
 
-                {/* Кнопка */}
                 <div className="profile-actions">
                     <button
                         className="button"

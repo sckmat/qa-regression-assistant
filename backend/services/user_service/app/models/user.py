@@ -9,7 +9,7 @@ from services.user_service.app.models.base import Base
 
 class User(Base):
     __tablename__ = "users"
-    __table_args__ = {"schema": settings.user_service_db_schema}  # 👈 ВАЖНО
+    __table_args__ = {"schema": settings.user_service_db_schema}
 
     id: Mapped[int] = mapped_column(primary_key=True)
 

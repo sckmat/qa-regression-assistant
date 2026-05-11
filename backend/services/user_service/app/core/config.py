@@ -11,10 +11,8 @@ class UserServiceSettings(BaseAppSettings):
     user_service_db_echo: bool = False
     user_service_db_schema: str = "user_service"
 
-    # Data service
     data_service_base_url: str = "http://127.0.0.1:8001"
 
-    # LLM service
     llm_service_base_url: str = "http://127.0.0.1:8002"
 
     openai_enabled: bool = True

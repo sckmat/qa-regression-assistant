@@ -9,16 +9,6 @@ from services.data_service.app.core.db import init_db
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    """
-    Lifecycle-хук data_service.
-
-    На старте сервис:
-    - создает отдельную схему PostgreSQL для data_service;
-    - создает таблицы текущего сервиса.
-
-    Для MVP это удобно, потому что можно быстро поднять сервис локально.
-    Позже этот код лучше заменить Alembic-миграциями.
-    """
     await init_db()
     yield
 

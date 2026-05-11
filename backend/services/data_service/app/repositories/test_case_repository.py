@@ -7,11 +7,6 @@ from services.data_service.app.models.test_case import TestCase
 
 
 class TestCaseRepository:
-    """
-    Репозиторий для работы с таблицей test_cases.
-
-    Здесь нет бизнес-логики: только запросы к БД.
-    """
 
     def __init__(self, session: AsyncSession):
         self.session = session
@@ -55,16 +50,6 @@ class TestCaseRepository:
         terms: list[str],
         max_candidates: int = 200,
     ) -> list[TestCase]:
-        """
-        Возвращает первичный кандидатный набор.
-
-        Для MVP используем простой подход:
-        - фильтруем тест-кейсы по project_id;
-        - ищем совпадения по title и raw_text через ILIKE;
-        - затем уже в сервисе считаем простую relevance score.
-
-        Это не финальный retrieval, а только базовый шаг.
-        """
         base_query = select(TestCase).where(TestCase.project_id == project_id)
 
         if terms:

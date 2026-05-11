@@ -4,12 +4,6 @@ from services.data_service.app.providers.embedding_provider import EmbeddingProv
 
 
 class OpenAIEmbeddingProvider(EmbeddingProvider):
-    """
-    Провайдер embeddings через OpenAI API.
-
-    Использует:
-    POST {OPENAI_BASE_URL}/v1/embeddings
-    """
 
     def __init__(
         self,

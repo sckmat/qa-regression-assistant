@@ -7,9 +7,6 @@ from services.llm_service.app.schemas.rerank import (
 
 
 class LLMProvider(ABC):
-    """
-    Абстрактный провайдер LLM.
-    """
 
     @abstractmethod
     async def rerank(

@@ -19,7 +19,7 @@ class LLMRerankCandidateRequest(BaseModel):
 class LLMRerankRequest(BaseModel):
     change_summary: str
     top_n: int
-    provider: str  # 👈 ВАЖНО: добавили provider
+    provider: str
     candidates: list[LLMRerankCandidateRequest]
 
 
@@ -37,9 +37,6 @@ class LLMRerankResponse(BaseModel):
 
 
 class LLMServiceClient:
-    """
-    HTTP-клиент для вызова llm_service.
-    """
 
     def __init__(self, base_url: str):
         self.base_url = base_url.rstrip("/")

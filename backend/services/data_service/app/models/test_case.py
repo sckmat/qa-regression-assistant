@@ -12,14 +12,6 @@ from services.data_service.app.models.base import Base
 
 
 class TestCase(Base):
-    """
-    Таблица тест-кейсов.
-
-    Важный момент:
-    здесь хранится только `project_id` как число без foreign key на `user_service.projects`.
-    Для отдельных сервисов это нормальная практика: data_service не должен напрямую зависеть
-    от таблиц другого сервиса на уровне БД.
-    """
 
     __tablename__ = "test_cases"
     __table_args__ = {"schema": settings.data_service_db_schema}

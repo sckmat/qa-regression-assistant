@@ -70,7 +70,6 @@ export function StartRegressionRunForm({ onSubmit, isLoading }: Props) {
                 )}
             </div>
 
-            {/* Количество кандидатов */}
             <div className="field">
                 <label className="label">Количество кандидатов</label>
 
@@ -85,7 +84,6 @@ export function StartRegressionRunForm({ onSubmit, isLoading }: Props) {
                 />
             </div>
 
-            {/* Режим */}
             <div className="field">
                 <label className="label">Режим анализа</label>
 
@@ -97,7 +95,6 @@ export function StartRegressionRunForm({ onSubmit, isLoading }: Props) {
                     </option>
                 </select>
 
-                {/* 🔥 Подсказки UX */}
                 {currentMode === 'semantic_llm' && (
                     <p className="hint">
                         Будет выполнен семантический поиск с дополнительной фильтрацией через модель.

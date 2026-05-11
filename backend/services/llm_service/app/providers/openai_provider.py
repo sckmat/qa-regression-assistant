@@ -4,7 +4,4 @@ from services.llm_service.app.providers.openai_compatible_provider import (
 
 
 class OpenAIProvider(OpenAICompatibleProvider):
-    """
-    Провайдер OpenAI.
-    """
     pass

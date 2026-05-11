@@ -2,12 +2,6 @@ from pydantic import BaseModel
 
 
 class RetrievalCandidate(BaseModel):
-    """
-    Нормализованный кандидат внутри user_service.
-
-    Приводим lexical, semantic и semantic+llm
-    к единому внутреннему виду.
-    """
 
     source_test_case_id: int
     title: str

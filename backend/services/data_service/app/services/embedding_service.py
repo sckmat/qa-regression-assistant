@@ -2,9 +2,6 @@ from services.data_service.app.providers.factory import build_embedding_provider
 
 
 class EmbeddingService:
-    """
-    Динамический выбор embedding provider.
-    """
 
     async def embed_texts(
         self,

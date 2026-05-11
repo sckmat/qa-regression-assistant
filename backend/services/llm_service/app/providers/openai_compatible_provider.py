@@ -11,10 +11,6 @@ from services.llm_service.app.schemas.rerank import (
 
 
 class OpenAICompatibleProvider(LLMProvider):
-    """
-    Провайдер поверх OpenAI Responses API.
-    Использует structured outputs через text.format/json_schema.
-    """
 
     def __init__(
         self,
@@ -145,10 +141,6 @@ class OpenAICompatibleProvider(LLMProvider):
             ) from exc
 
     def _extract_output_text(self, data: dict) -> str:
-        """
-        Извлекает текстовый output из ответа Responses API.
-        Ищем assistant message -> content[type=output_text] -> text.
-        """
         output = data.get("output", [])
         if not isinstance(output, list):
             raise ValueError(f"Unexpected Responses API format: {data}")

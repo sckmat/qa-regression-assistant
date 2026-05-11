@@ -5,9 +5,6 @@ from pydantic import BaseModel, Field
 
 
 class TestCaseImportItem(BaseModel):
-    """
-    Описание одного тест-кейса для импорта.
-    """
 
     external_id: Optional[str] = Field(
         default=None,
@@ -25,7 +22,7 @@ class TestCaseImportItem(BaseModel):
     )
     steps: Optional[str] = Field(
         default=None,
-        description="Шаги выполнения теста. Пока храним обычным текстом.",
+        description="Шаги выполнения теста. Храним обычным текстом.",
     )
     expected_result: Optional[str] = Field(
         default=None,
@@ -46,9 +43,6 @@ class TestCaseImportItem(BaseModel):
 
 
 class TestCaseImportRequest(BaseModel):
-    """
-    Пакетный импорт тест-кейсов.
-    """
 
     items: list[TestCaseImportItem] = Field(
         ...,
@@ -58,9 +52,6 @@ class TestCaseImportRequest(BaseModel):
 
 
 class TestCaseRead(BaseModel):
-    """
-    Схема ответа с данными тест-кейса.
-    """
 
     id: int
     project_id: int
@@ -78,9 +69,6 @@ class TestCaseRead(BaseModel):
 
 
 class TestCaseImportResponse(BaseModel):
-    """
-    Ответ после пакетного импорта.
-    """
 
     imported_count: int
     project_id: int
@@ -88,9 +76,6 @@ class TestCaseImportResponse(BaseModel):
 
 
 class TestCaseSearchRequest(BaseModel):
-    """
-    Запрос на поиск тест-кейсов по тексту.
-    """
 
     query: str = Field(
         ...,
@@ -106,9 +91,6 @@ class TestCaseSearchRequest(BaseModel):
 
 
 class TestCaseSearchResult(BaseModel):
-    """
-    Один найденный кандидат с простейшей оценкой релевантности.
-    """
 
     test_case: TestCaseRead
     relevance_score: int
@@ -116,9 +98,6 @@ class TestCaseSearchResult(BaseModel):
 
 
 class TestCaseSearchResponse(BaseModel):
-    """
-    Итоговый ответ поиска.
-    """
 
     project_id: int
     query: str

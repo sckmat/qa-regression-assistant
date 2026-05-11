@@ -10,16 +10,6 @@ from fastapi.middleware.cors import CORSMiddleware
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    """
-    Lifecycle-хук приложения.
-
-    На старте:
-    - создаем схему PostgreSQL для user_service, если ее еще нет;
-    - создаем таблицы текущего сервиса.
-
-    Для MVP это допустимый подход.
-    Позже лучше перейти на Alembic-миграции.
-    """
     await init_db()
     yield
 

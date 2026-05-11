@@ -21,14 +21,6 @@ from services.data_service.app.repositories.test_case_embedding_repository impor
 
 
 class TestCaseService:
-    """
-    Сервисный слой data_service.
-
-    Здесь находится прикладная логика:
-    - сбор raw_text;
-    - пакетный импорт тест-кейсов;
-    - поиск и простое ранжирование кандидатов.
-    """
 
     def __init__(self, session: AsyncSession):
         self.session = session
@@ -117,7 +109,6 @@ class TestCaseService:
                 if in_title:
                     score += 2
 
-            # Дополнительный бонус за полное вхождение всего запроса в текст.
             if normalized_query and normalized_query in normalized_document:
                 score += 3
 

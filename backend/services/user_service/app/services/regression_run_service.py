@@ -107,7 +107,6 @@ class RegressionRunService:
         if run is None:
             raise HTTPException(404, "Run not found")
 
-        # 🔥 ВАЖНО: проверка через проект
         await self._ensure_project_access(run.project_id, user_id)
 
         candidates = await self.regression_run_candidate_repository.list_by_run_id(

@@ -5,9 +5,6 @@ from services.data_service.app.models.test_case_embedding import TestCaseEmbeddi
 
 
 class TestCaseEmbeddingRepository:
-    """
-    Repository для таблицы test_case_embeddings.
-    """
 
     def __init__(self, session: AsyncSession):
         self.session = session

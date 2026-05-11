@@ -5,22 +5,11 @@ from typing import Iterable
 
 
 class TextProcessingService:
-    """
-    Небольшой вспомогательный сервис для подготовки текста.
-
-    Это не отдельный микросервис, а обычный внутренний helper-класс data_service.
-    """
 
     _split_pattern = re.compile(r"[^\w]+", flags=re.UNICODE)
     _whitespace_pattern = re.compile(r"\s+")
 
     def normalize_text(self, value: str | None) -> str:
-        """
-        Нормализует текст:
-        - приводит к нижнему регистру;
-        - схлопывает повторные пробелы;
-        - убирает лишние пробельные символы по краям.
-        """
         if not value:
             return ""
 
@@ -29,15 +18,6 @@ class TextProcessingService:
         return normalized
 
     def tokenize_query(self, query: str) -> list[str]:
-        """
-        Разбивает запрос на простые термины.
-
-        Для MVP используем очень простое правило:
-        - разбиваем по не-буквенно-цифровым символам;
-        - убираем пустые токены;
-        - оставляем токены длиной от 2 символов;
-        - убираем дубликаты с сохранением порядка.
-        """
         raw_parts = self._split_pattern.split(self.normalize_text(query))
 
         unique_terms: list[str] = []
@@ -63,12 +43,6 @@ class TextProcessingService:
         priority: str | None,
         external_id: str | None,
     ) -> str:
-        """
-        Собирает единый текст документа из полей тест-кейса.
-
-        Это удобно, потому что дальше можно искать по одному текстовому полю,
-        а не по набору разрозненных колонок.
-        """
         parts = [
             f"external_id: {external_id}" if external_id else None,
             f"title: {title}",

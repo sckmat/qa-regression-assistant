@@ -5,9 +5,6 @@ from pydantic import BaseModel, Field, ConfigDict
 
 
 class ProjectCreate(BaseModel):
-    """
-    Схема входящего тела запроса на создание проекта.
-    """
 
     name: str = Field(
         ...,
@@ -22,9 +19,6 @@ class ProjectCreate(BaseModel):
 
 
 class ProjectRead(BaseModel):
-    """
-    Схема ответа с данными проекта.
-    """
 
     model_config = ConfigDict(from_attributes=True)
 

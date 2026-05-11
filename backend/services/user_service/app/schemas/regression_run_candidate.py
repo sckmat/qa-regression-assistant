@@ -4,9 +4,6 @@ from pydantic import BaseModel
 
 
 class RegressionRunCandidateRead(BaseModel):
-    """
-    Схема ответа по одному найденному кандидату.
-    """
 
     id: int
     regression_run_id: int

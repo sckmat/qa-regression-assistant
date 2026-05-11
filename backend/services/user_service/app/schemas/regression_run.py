@@ -9,9 +9,6 @@ from services.user_service.app.schemas.regression_run_candidate import (
 
 
 class RegressionRunCreate(BaseModel):
-    """
-    Схема входящего запроса на создание запуска анализа.
-    """
 
     change_summary: str = Field(
         ...,

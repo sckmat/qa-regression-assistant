@@ -2,9 +2,6 @@ from pydantic import BaseModel, Field
 
 
 class RerankCandidateInput(BaseModel):
-    """
-    Кандидат, пришедший из retrieval-слоя.
-    """
 
     test_case_id: int
     title: str
@@ -13,9 +10,6 @@ class RerankCandidateInput(BaseModel):
 
 
 class RerankRequest(BaseModel):
-    """
-    Запрос на rerank.
-    """
 
     change_summary: str = Field(..., min_length=1)
     candidates: list[RerankCandidateInput] = Field(default_factory=list)
@@ -24,9 +18,6 @@ class RerankRequest(BaseModel):
 
 
 class LLMRerankedItem(BaseModel):
-    """
-    Один элемент ответа модели.
-    """
 
     test_case_id: int
     is_relevant: bool
@@ -35,17 +26,11 @@ class LLMRerankedItem(BaseModel):
 
 
 class LLMStructuredRerankOutput(BaseModel):
-    """
-    Структура, которую должна вернуть модель в JSON.
-    """
 
     items: list[LLMRerankedItem]
 
 
 class RerankResponse(BaseModel):
-    """
-    Ответ API llm_service.
-    """
 
     provider: str
     model: str

@@ -35,7 +35,6 @@ export function NewRunPage() {
 
             toast.success(uiText.toasts.runStarted)
 
-            // 👉 редирект на результат
             navigate(`/runs/${run.id}`)
         } catch (e) {
             toast.error(uiText.common.retryLater)

@@ -4,9 +4,6 @@ from services.data_service.app.providers.embedding_provider import EmbeddingProv
 
 
 class OllamaEmbeddingProvider(EmbeddingProvider):
-    """
-    Провайдер embeddings через Ollama.
-    """
 
     def __init__(
         self,

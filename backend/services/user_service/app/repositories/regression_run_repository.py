@@ -5,9 +5,6 @@ from services.user_service.app.models.regression_run import RegressionRun
 
 
 class RegressionRunRepository:
-    """
-    Repository-слой для таблицы regression_runs.
-    """
 
     def __init__(self, session: AsyncSession):
         self.session = session
@@ -19,12 +16,6 @@ class RegressionRunRepository:
         status: str = "created",
         result_summary: str | None = None,
     ) -> RegressionRun:
-        """
-        Создает запуск анализа, но не коммитит транзакцию сразу.
-
-        мы хотим в рамках одной транзакции сохранить и сам run,
-        и найденных кандидатов.
-        """
         run = RegressionRun(
             project_id=project_id,
             change_summary=change_summary,

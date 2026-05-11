@@ -7,9 +7,6 @@ from services.user_service.app.models.regression_run_candidate import (
 
 
 class RegressionRunCandidateRepository:
-    """
-    Repository-слой для таблицы regression_run_candidates.
-    """
 
     def __init__(self, session: AsyncSession):
         self.session = session

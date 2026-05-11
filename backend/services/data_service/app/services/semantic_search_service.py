@@ -36,7 +36,6 @@ class SemanticSearchService:
             )
         )[0]
 
-        # 🔥 КЛЮЧЕВОЕ: конвертация list -> vector string
         embedding_str = f"[{','.join(map(str, query_embedding))}]"
 
         schema = settings.data_service_db_schema
@@ -61,7 +60,7 @@ class SemanticSearchService:
         result = await self.session.execute(
             stmt,
             {
-                "query_embedding": embedding_str,  # 🔥 теперь строка!
+                "query_embedding": embedding_str,
                 "project_id": project_id,
                 "limit": payload.limit,
             },

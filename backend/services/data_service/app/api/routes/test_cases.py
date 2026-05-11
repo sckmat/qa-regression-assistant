@@ -36,13 +36,6 @@ async def import_test_cases(
     payload: TestCaseImportRequest,
     session: AsyncSession = Depends(get_db_session),
 ):
-    """
-    Пакетно импортирует тест-кейсы для проекта.
-
-    Почему проект приходит path-параметром:
-    - так API явно показывает, к какому проекту относится импорт;
-    - тело запроса содержит только сами тест-кейсы.
-    """
     service = TestCaseService(session)
     items = await service.import_test_cases(project_id, payload)
     return TestCaseImportResponse(
@@ -60,9 +53,6 @@ async def list_test_cases(
     project_id: int,
     session: AsyncSession = Depends(get_db_session),
 ):
-    """
-    Возвращает все тест-кейсы проекта.
-    """
     service = TestCaseService(session)
     return await service.list_test_cases(project_id)
 
@@ -75,9 +65,6 @@ async def get_test_case(
     test_case_id: int,
     session: AsyncSession = Depends(get_db_session),
 ):
-    """
-    Возвращает один тест-кейс по id.
-    """
     service = TestCaseService(session)
     return await service.get_test_case(test_case_id)
 
@@ -91,14 +78,6 @@ async def search_test_cases(
     payload: TestCaseSearchRequest,
     session: AsyncSession = Depends(get_db_session),
 ):
-    """
-    Ищет кандидатов по текстовому запросу.
-
-    На этом этапе это не семантический поиск, а простой baseline retrieval:
-    - через разбиение query на токены;
-    - через ILIKE-фильтрацию;
-    - через простое rule-based ранжирование.
-    """
     service = TestCaseService(session)
     return await service.search_test_cases(
         project_id=project_id,
@@ -129,9 +108,6 @@ async def semantic_search_test_cases(
     payload: SemanticSearchRequest,
     session: AsyncSession = Depends(get_db_session),
 ) -> SemanticSearchResponse:
-    """
-    Выполняет semantic search по embeddings test cases проекта.
-    """
     service = SemanticSearchService(session)
     return await service.semantic_search(project_id, payload)
 
@@ -142,9 +118,5 @@ async def delete_project_test_cases(
     project_id: int,
     session: AsyncSession = Depends(get_db_session),
 ) -> dict:
-    """
-    Удаляет все test cases и embeddings проекта.
-    Используется user_service при удалении проекта.
-    """
     service = TestCaseService(session)
     return await service.delete_project_test_cases(project_id)

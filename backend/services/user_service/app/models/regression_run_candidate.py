@@ -10,9 +10,6 @@ from services.user_service.app.models.base import Base
 
 
 class RegressionRunCandidate(Base):
-    """
-    Таблица найденных кандидатов для конкретного запуска анализа.
-    """
 
     __tablename__ = "regression_run_candidates"
     __table_args__ = {"schema": settings.user_service_db_schema}
