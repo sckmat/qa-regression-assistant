@@ -38,18 +38,16 @@ backend.cache/
 # Docker files
 Dockerfile
 .dockerignore
-docker-compose*.yml
+docker-compose.prod.yml
 docker-compose*.yaml
 
 # Documentation and development files
 README.md
 *.md
-LICENSE
 .editorconfig
 
 # Environment and secrets
 .env
-.env.*
 *.pem
 *.key
 *.cert

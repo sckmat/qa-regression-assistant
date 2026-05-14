@@ -1,0 +1,184 @@
+name: ${COMPOSE_PROJECT_NAME:-qa-regression-assistant}
+
+services:
+  caddy:
+    image: caddy:2.9-alpine
+    container_name: qa-caddy
+    restart: unless-stopped
+    environment:
+      PUBLIC_DOMAIN: :80
+      CADDY_ACME_EMAIL: local@example.com
+    ports:
+      - "8080:80"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - qa_caddy_data:/data
+      - qa_caddy_config:/config
+    depends_on:
+      frontend:
+        condition: service_healthy
+      user_service:
+        condition: service_healthy
+    networks:
+      - edge_net
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: deploy/dockerfiles/frontend.Dockerfile
+      args:
+        VITE_API_BASE_URL: ""
+    container_name: qa-frontend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1/health >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - edge_net
+
+  user_service:
+    build:
+      context: ..
+      dockerfile: deploy/dockerfiles/user_service.Dockerfile
+    container_name: qa-user-service
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+asyncpg://qa_user:qa_password@postgres:5432/qa_regression_assistant
+
+      USER_SERVICE_NAME: user-service
+      USER_SERVICE_HOST: 0.0.0.0
+      USER_SERVICE_PORT: 8000
+      USER_SERVICE_DEBUG: "true"
+      USER_SERVICE_DB_ECHO: "false"
+      USER_SERVICE_DB_SCHEMA: user_service
+
+      DATA_SERVICE_BASE_URL: http://data_service:8000
+      LLM_SERVICE_BASE_URL: http://llm_service:8000
+
+      OPENAI_ENABLED: ${OPENAI_ENABLED:-true}
+      OLLAMA_ENABLED: ${OLLAMA_ENABLED:-false}
+      DEFAULT_LLM_PROVIDER: ${DEFAULT_LLM_PROVIDER:-openai}
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      data_service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8000/health >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 25s
+    networks:
+      - edge_net
+      - backend_net
+
+  data_service:
+    build:
+      context: ..
+      dockerfile: deploy/dockerfiles/data_service.Dockerfile
+    container_name: qa-data-service
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+asyncpg://qa_user:qa_password@postgres:5432/qa_regression_assistant
+
+      DATA_SERVICE_NAME: data-service
+      DATA_SERVICE_HOST: 0.0.0.0
+      DATA_SERVICE_PORT: 8000
+      DATA_SERVICE_DEBUG: "true"
+      DATA_SERVICE_DB_ECHO: "false"
+      DATA_SERVICE_DB_SCHEMA: data_service
+
+      EMBEDDING_DIM: 768
+      EMBEDDING_BATCH_SIZE: 16
+      DEFAULT_EMBEDDING_PROVIDER: ${DEFAULT_EMBEDDING_PROVIDER:-openai}
+
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_EMBEDDING_MODEL: ${OPENAI_EMBEDDING_MODEL:-text-embedding-3-small}
+
+      OLLAMA_EMBEDDING_BASE_URL: ${OLLAMA_EMBEDDING_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_EMBEDDING_MODEL: ${OLLAMA_EMBEDDING_MODEL:-nomic-embed-text}
+    ports:
+      - "8001:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8000/health >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 25s
+    networks:
+      - backend_net
+
+  llm_service:
+    build:
+      context: ..
+      dockerfile: deploy/dockerfiles/llm_service.Dockerfile
+    container_name: qa-llm-service
+    restart: unless-stopped
+    environment:
+      LLM_SERVICE_NAME: llm-service
+      LLM_SERVICE_HOST: 0.0.0.0
+      LLM_SERVICE_PORT: 8000
+      LLM_SERVICE_DEBUG: "true"
+
+      LLM_TIMEOUT_SECONDS: 120
+      DEFAULT_LLM_PROVIDER: ${DEFAULT_LLM_PROVIDER:-openai}
+
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_LLM_MODEL: ${OPENAI_LLM_MODEL:-gpt-4.1-mini}
+      OPENAI_ENABLED: ${OPENAI_ENABLED:-true}
+
+      OLLAMA_LLM_BASE_URL: ${OLLAMA_LLM_BASE_URL:-http://host.docker.internal:11434/v1}
+      OLLAMA_LLM_MODEL: ${OLLAMA_LLM_MODEL:-llama3.1}
+      OLLAMA_ENABLED: ${OLLAMA_ENABLED:-false}
+    ports:
+      - "8002:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8000/docs >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - backend_net
+
+  postgres:
+    image: pgvector/pgvector:pg16-trixie
+    container_name: qa-postgres-local
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: qa_regression_assistant
+      POSTGRES_USER: qa_user
+      POSTGRES_PASSWORD: qa_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - qa_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U qa_user -d qa_regression_assistant"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend_net
+
+networks:
+  edge_net:
+    driver: bridge
+  backend_net:
+    driver: bridge
+
+volumes:
+  qa_postgres_data:
+  qa_caddy_data:
+  qa_caddy_config:
