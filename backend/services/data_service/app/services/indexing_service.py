@@ -53,12 +53,13 @@ class IndexingService:
 
                 embeddings = await self.embedding_service.embed_texts(
                     batch_texts,
-                    provider_name=provider,  # 🔥
+                    provider_name=provider,
                 )
 
                 for test_case, embedding in zip(batch, embeddings):
                     await self.embedding_repository.upsert(
                         test_case_id=test_case.id,
+                        project_id=test_case.project_id,
                         embedding=embedding,
                         embedding_provider=provider,
                         embedding_model=model,
@@ -95,6 +96,6 @@ class IndexingService:
 
     def _batched(self, items: list[TestCase], batch_size: int):
         return [
-            items[i : i + batch_size]
+            items[i: i + batch_size]
             for i in range(0, len(items), batch_size)
         ]

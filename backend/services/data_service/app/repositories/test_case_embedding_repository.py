@@ -12,10 +12,12 @@ class TestCaseEmbeddingRepository:
     async def get_by_test_case_id(
         self,
         test_case_id: int,
+        project_id: int,
     ) -> TestCaseEmbedding | None:
         result = await self.session.execute(
             select(TestCaseEmbedding).where(
-                TestCaseEmbedding.test_case_id == test_case_id
+                TestCaseEmbedding.test_case_id == test_case_id,
+                TestCaseEmbedding.project_id == project_id,
             )
         )
         return result.scalar_one_or_none()
@@ -23,15 +25,17 @@ class TestCaseEmbeddingRepository:
     async def upsert(
         self,
         test_case_id: int,
+        project_id: int,
         embedding: list[float],
         embedding_provider: str,
         embedding_model: str,
     ) -> TestCaseEmbedding:
-        entity = await self.get_by_test_case_id(test_case_id)
+        entity = await self.get_by_test_case_id(test_case_id, project_id)
 
         if entity is None:
             entity = TestCaseEmbedding(
                 test_case_id=test_case_id,
+                project_id=project_id,
                 embedding=embedding,
                 embedding_provider=embedding_provider,
                 embedding_model=embedding_model,

@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from pgvector.sqlalchemy import VECTOR
-from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint, func
+from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint, func, Integer
 from sqlalchemy.orm import Mapped, mapped_column
 
 from services.data_service.app.core.config import settings
@@ -11,8 +11,12 @@ from services.data_service.app.models.base import Base
 class TestCaseEmbedding(Base):
     __tablename__ = "test_case_embeddings"
     __table_args__ = (
-        UniqueConstraint("test_case_id", name="uq_test_case_embeddings_test_case_id"),
-        {"schema": settings.data_service_db_schema},  # 🔥 ключевая строка
+        UniqueConstraint(
+            "test_case_id",
+            "project_id",
+            name="uq_test_case_embeddings_test_case_project",
+        ),
+        {"schema": settings.data_service_db_schema},
     )
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
@@ -22,6 +26,12 @@ class TestCaseEmbedding(Base):
             f"{settings.data_service_db_schema}.test_cases.id",
             ondelete="CASCADE",
         ),
+        nullable=False,
+        index=True,
+    )
+
+    project_id: Mapped[int] = mapped_column(
+        Integer,
         nullable=False,
         index=True,
     )

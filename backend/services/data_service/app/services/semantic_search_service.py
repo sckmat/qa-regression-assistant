@@ -51,7 +51,7 @@ class SemanticSearchService:
                 (tce.embedding <=> CAST(:query_embedding AS vector)) AS cosine_distance
             FROM {schema}.test_case_embeddings tce
             JOIN {schema}.test_cases tc ON tc.id = tce.test_case_id
-            WHERE tc.project_id = :project_id
+            WHERE tce.project_id = :project_id 
             ORDER BY tce.embedding <=> CAST(:query_embedding AS vector)
             LIMIT :limit
             """
